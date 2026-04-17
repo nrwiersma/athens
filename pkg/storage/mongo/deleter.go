@@ -44,7 +44,7 @@ func (s *ModuleStore) Delete(ctx context.Context, module, version string) error 
 
 	if err = bucket.Delete(ctx, bson.Raw(b).Lookup("_id").ObjectID()); err != nil {
 		kind := errors.KindUnexpected
-		if errors.IsErr(err, mongo.ErrFileNotFound) {
+		if errors.Is(err, mongo.ErrFileNotFound) {
 			kind = errors.KindNotFound
 		}
 		return errors.E(op, err, kind, errors.M(module), errors.V(version))

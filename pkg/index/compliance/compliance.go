@@ -93,7 +93,7 @@ func RunTests(t *testing.T, indexer index.Indexer, clearIndex func() error) {
 					t.Fatal(err)
 				}
 				err = indexer.Index(t.Context(), m.Path, m.Version)
-				if !errors.Is(err, errors.KindAlreadyExists) {
+				if !errors.IsKind(err, errors.KindAlreadyExists) {
 					t.Fatalf("expected an error of kind AlreadyExists but got %s", errors.KindText(err))
 				}
 				return []*index.Line{m}, time.Time{}

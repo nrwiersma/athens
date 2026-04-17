@@ -60,7 +60,7 @@ func (s *storageImpl) Catalog(ctx context.Context, token string, pageSize int) (
 		}
 		return nil
 	})
-	if err != nil && !errors.IsErr(err, io.EOF) {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, "", errors.E(op, err, errors.KindUnexpected)
 	}
 

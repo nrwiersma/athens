@@ -109,8 +109,8 @@ func getPostgresSource(cfg *config.PostgresIndex) string {
 }
 
 func getKind(err error) int {
-	pqerr := &pq.Error{}
-	if !errors.AsErr(err, &pqerr) {
+	pqerr, ok := errors.AsType[*pq.Error](err)
+	if !ok {
 		return errors.KindUnexpected
 	}
 	switch pqerr.Code {

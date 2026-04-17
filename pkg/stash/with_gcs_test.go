@@ -40,7 +40,7 @@ func TestWithGCS(t *testing.T) {
 
 	// sanity check
 	_, err := strg.GoMod(ctx, mod, ver)
-	if !errors.Is(err, errors.KindNotFound) {
+	if !errors.IsKind(err, errors.KindNotFound) {
 		t.Fatalf("expected the stash bucket to return a NotFound error but got: %v", err)
 	}
 
@@ -106,7 +106,7 @@ func TestWithGCSPartialFailure(t *testing.T) {
 
 	// sanity check
 	_, err := strg.GoMod(ctx, mod, ver)
-	if !errors.Is(err, errors.KindNotFound) {
+	if !errors.IsKind(err, errors.KindNotFound) {
 		t.Fatalf("expected the stash bucket to return a NotFound error but got: %v", err)
 	}
 

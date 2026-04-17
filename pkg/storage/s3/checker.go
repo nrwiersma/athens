@@ -44,8 +44,7 @@ func (s *Storage) Exists(ctx context.Context, module, version string) (bool, err
 		if err == nil {
 			continue
 		}
-		var aerr smithy.APIError
-		if errors.AsErr(err, &aerr) && aerr.ErrorCode() == "NotFound" {
+		if aErr, ok := errors.AsType[smithy.APIError](err); ok && aErr.ErrorCode() == "NotFound" {
 			err = nil
 			exists = false
 		}

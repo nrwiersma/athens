@@ -10,6 +10,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Error functions from stdlib.
+var (
+	Is   = errors.Is
+	Join = errors.Join
+)
+
+// AsType is a mirror of Go's `errors.AsType`.
+func AsType[E error](target error) (E, bool) {
+	return errors.AsType[E](target)
+}
+
 // Kind enums.
 const (
 	KindNotFound       = http.StatusNotFound
@@ -49,28 +60,11 @@ func (e Error) Error() string {
 	return e.Err.Error()
 }
 
+// Unwrap returns the underlying error so that
+// callers can use errors.Is and errors.As
+// to check for specific error types and
+// values.
 func (e Error) Unwrap() error { return e.Err }
-
-// Is is a shorthand for checking an error against a kind.
-func Is(err error, kind int) bool {
-	if err == nil {
-		return false
-	}
-	return Kind(err) == kind
-}
-
-// IsErr is a convenience wrapper around the std library errors.Is.
-func IsErr(err, target error) bool {
-	return errors.Is(err, target)
-}
-
-// AsErr is a convenience wrapper around the std library errors.As.
-func AsErr(err error, target any) bool {
-	return errors.As(err, target)
-}
-
-// Join is a convenience wrapper around the std library errors.Join.
-var Join = errors.Join
 
 // Op describes any independent function or
 // method in Athens. A series of operations
@@ -160,16 +154,22 @@ func Expect(err error, kinds ...int) logrus.Level {
 // Kind recursively searches for the
 // first error kind it finds.
 func Kind(err error) int {
-	var e Error
-	if !errors.As(err, &e) {
+	e, ok := errors.AsType[Error](err)
+	if !ok {
 		return KindUnexpected
 	}
-
 	if e.Kind != 0 {
 		return e.Kind
 	}
-
 	return Kind(e.Err)
+}
+
+// IsKind is a shorthand for checking an error against a kind.
+func IsKind(err error, kind int) bool {
+	if err == nil {
+		return false
+	}
+	return Kind(err) == kind
 }
 
 // KindText returns a friendly string

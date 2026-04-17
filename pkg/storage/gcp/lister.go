@@ -22,7 +22,7 @@ func (s *Storage) List(ctx context.Context, module string) ([]string, error) {
 	paths := []string{}
 	for {
 		attrs, err := it.Next()
-		if errors.IsErr(err, iterator.Done) {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {

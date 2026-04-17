@@ -53,19 +53,16 @@ func (s *Storage) createBucket() error {
 	defer cancel()
 
 	if _, err := s.s3API.CreateBucket(ctx, &s3.CreateBucketInput{Bucket: aws.String(s.bucket)}); err != nil {
-		var aerr smithy.APIError
-
-		if errors.AsErr(err, &aerr) {
-			switch aerr.(type) {
+		if aErr, ok := errors.AsType[smithy.APIError](err); ok {
+			switch aErr.(type) {
 			case *types.BucketAlreadyOwnedByYou:
 				return nil
 			case *types.BucketAlreadyExists:
 				return nil
 			default:
-				return aerr
+				return aErr
 			}
 		}
-
 		return err
 	}
 

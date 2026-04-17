@@ -28,7 +28,7 @@ type checker struct {
 func (c *checker) Exists(ctx context.Context, module, version string) (bool, error) {
 	_, err := c.strg.Info(ctx, module, version)
 	if err != nil {
-		if errors.Is(err, errors.KindNotFound) {
+		if errors.IsKind(err, errors.KindNotFound) {
 			return false, nil
 		}
 		return false, err

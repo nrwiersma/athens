@@ -41,7 +41,7 @@ func (s *gcsLock) Stash(ctx context.Context, mod, ver string) (newVer string, er
 	newVer, err = s.stasher.Stash(ctx, mod, ver)
 	if err != nil {
 		// already been saved before, move on.
-		if errors.Is(err, errors.KindAlreadyExists) {
+		if errors.IsKind(err, errors.KindAlreadyExists) {
 			return ver, nil
 		}
 		return ver, errors.E(op, err)

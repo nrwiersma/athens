@@ -110,8 +110,8 @@ func getMySQLSource(cfg *config.MySQLIndex) string {
 }
 
 func getKind(err error) int {
-	mysqlErr := &mysql.MySQLError{}
-	if !errors.AsErr(err, &mysqlErr) {
+	mysqlErr, ok := errors.AsType[*mysql.MySQLError](err)
+	if !ok {
 		return errors.KindUnexpected
 	}
 	switch mysqlErr.Number {

@@ -37,7 +37,7 @@ func New(ctx context.Context, gcpConf *config.GCPStorage, timeout time.Duration)
 	}
 
 	if _, err = s.bucket.Attrs(ctx); err != nil {
-		if errors.IsErr(err, storage.ErrBucketNotExist) {
+		if errors.Is(err, storage.ErrBucketNotExist) {
 			return nil, errors.E(op, "You must manually create a storage bucket for Athens, see https://cloud.google.com/storage/docs/creating-buckets#storage-create-bucket-console")
 		}
 		return nil, errors.E(op, err)

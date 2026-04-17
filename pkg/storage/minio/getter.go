@@ -9,7 +9,7 @@ import (
 	"github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 	"github.com/gomods/athens/pkg/storage"
-	minio "github.com/minio/minio-go/v6"
+	"github.com/minio/minio-go/v6"
 )
 
 func (s *storageImpl) Info(ctx context.Context, module, vsn string) ([]byte, error) {
@@ -72,9 +72,8 @@ func (s *storageImpl) Zip(ctx context.Context, module, vsn string) (storage.Size
 }
 
 func transformNotFoundErr(op errors.Op, module, version string, err error) error {
-	var eresp minio.ErrorResponse
-	if errors.AsErr(err, &eresp) {
-		if eresp.StatusCode == http.StatusNotFound {
+	if respErr, ok := errors.AsType[minio.ErrorResponse](err); ok {
+		if respErr.StatusCode == http.StatusNotFound {
 			return errors.E(op, errors.M(module), errors.V(version), errors.KindNotFound)
 		}
 	}

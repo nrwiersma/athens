@@ -158,7 +158,7 @@ func downloadModule(
 	cmd.Stderr = stderr
 
 	err := cmd.Run()
-	if err != nil && !errors.IsNoChildProcessesErr(err) {
+	if err != nil && !isNoChildProcessesError(err) {
 		err = fmt.Errorf("%w: %s", err, stderr)
 		var m goModule
 		if jsonErr := json.NewDecoder(stdout).Decode(&m); jsonErr != nil {
@@ -198,9 +198,11 @@ func validGoBinary(name string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	err := exec.CommandContext(ctx, name).Run()
-	eErr := &exec.ExitError{}
-	if err != nil && !errors.AsErr(err, &eErr) {
-		return errors.E(op, err)
+	if err != nil {
+		if _, ok := errors.AsType[*exec.ExitError](err); !ok {
+			return errors.E(op, err)
+		}
+		// Fallthrough.
 	}
 	return nil
 }

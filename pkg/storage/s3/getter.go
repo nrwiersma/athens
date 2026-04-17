@@ -22,8 +22,7 @@ func (s *Storage) Info(ctx context.Context, module, version string) ([]byte, err
 
 	infoReader, err := s.open(ctx, config.PackageVersionedName(module, version, "info"))
 	if err != nil {
-		var nsk *types.NoSuchKey
-		if errors.AsErr(err, &nsk) {
+		if _, ok := errors.AsType[*types.NoSuchKey](err); ok {
 			return nil, errors.E(op, errors.M(module), errors.V(version), errors.KindNotFound)
 		}
 		return nil, errors.E(op, err, errors.M(module), errors.V(version))
@@ -45,8 +44,7 @@ func (s *Storage) GoMod(ctx context.Context, module, version string) ([]byte, er
 
 	modReader, err := s.open(ctx, config.PackageVersionedName(module, version, "mod"))
 	if err != nil {
-		var nsk *types.NoSuchKey
-		if errors.AsErr(err, &nsk) {
+		if _, ok := errors.AsType[*types.NoSuchKey](err); ok {
 			return nil, errors.E(op, errors.M(module), errors.V(version), errors.KindNotFound)
 		}
 		return nil, errors.E(op, err, errors.M(module), errors.V(version))
@@ -69,8 +67,7 @@ func (s *Storage) Zip(ctx context.Context, module, version string) (storage.Size
 
 	zipReader, err := s.open(ctx, config.PackageVersionedName(module, version, "zip"))
 	if err != nil {
-		var nsk *types.NoSuchKey
-		if errors.AsErr(err, &nsk) {
+		if _, ok := errors.AsType[*types.NoSuchKey](err); ok {
 			return nil, errors.E(op, errors.M(module), errors.V(version), errors.KindNotFound)
 		}
 		return nil, errors.E(op, err, errors.M(module), errors.V(version))
@@ -90,8 +87,7 @@ func (s *Storage) open(ctx context.Context, path string) (storage.SizeReadCloser
 
 	goo, err := s.s3API.GetObject(ctx, getParams)
 	if err != nil {
-		var nsk *types.NoSuchKey
-		if errors.AsErr(err, &nsk) {
+		if _, ok := errors.AsType[*types.NoSuchKey](err); ok {
 			return nil, errors.E(op, errors.KindNotFound)
 		}
 		return nil, errors.E(op, err)

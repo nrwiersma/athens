@@ -35,13 +35,13 @@ func (e *entry) WithFields(fields map[string]any) Entry {
 }
 
 func (e *entry) SystemErr(err error) {
-	var athensErr errors.Error
-	if !errors.AsErr(err, &athensErr) {
+	aErr, ok := errors.AsType[errors.Error](err)
+	if !ok {
 		e.Error(err)
 		return
 	}
 
-	ent := e.WithFields(errFields(athensErr))
+	ent := e.WithFields(errFields(aErr))
 	switch errors.Severity(err) {
 	case logrus.WarnLevel:
 		ent.Warnf("%v", err)

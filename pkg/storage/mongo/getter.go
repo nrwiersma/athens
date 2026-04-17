@@ -52,7 +52,7 @@ func (s *ModuleStore) Zip(ctx context.Context, module, vsn string) (storage.Size
 	dStream, err := bucket.OpenDownloadStreamByName(ctx, zipName, options.GridFSName())
 	if err != nil {
 		kind := errors.KindUnexpected
-		if errors.IsErr(err, mongo.ErrFileNotFound) {
+		if errors.Is(err, mongo.ErrFileNotFound) {
 			kind = errors.KindNotFound
 		}
 		return nil, errors.E(op, err, kind, errors.M(module), errors.V(vsn))
@@ -92,7 +92,7 @@ func query(ctx context.Context, s *ModuleStore, module, vsn string) (*storage.Mo
 	queryResult := c.FindOne(tctx, bson.M{"module": module, "version": vsn})
 	if queryErr := queryResult.Err(); queryErr != nil {
 		kind := errors.KindUnexpected
-		if errors.IsErr(queryErr, mongo.ErrNoDocuments) {
+		if errors.Is(queryErr, mongo.ErrNoDocuments) {
 			kind = errors.KindNotFound
 		}
 		return nil, errors.E(op, queryErr, kind, errors.M(module), errors.V(vsn))
@@ -100,7 +100,7 @@ func query(ctx context.Context, s *ModuleStore, module, vsn string) (*storage.Mo
 
 	if err := queryResult.Decode(result); err != nil {
 		kind := errors.KindUnexpected
-		if errors.IsErr(err, mongo.ErrNoDocuments) {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			kind = errors.KindNotFound
 		}
 		return nil, errors.E(op, err, kind, errors.M(module), errors.V(vsn))

@@ -60,7 +60,7 @@ func (s *Storage) Zip(ctx context.Context, module, version string) (pkgstorage.S
 }
 
 func getErrorKind(err error) int {
-	if errors.IsErr(err, storage.ErrObjectNotExist) {
+	if errors.Is(err, storage.ErrObjectNotExist) {
 		return errors.KindNotFound
 	}
 	return errors.KindUnexpected

@@ -21,7 +21,7 @@ func (s *Storage) Exists(ctx context.Context, module, version string) (bool, err
 	var count int
 	for {
 		attrs, err := it.Next()
-		if errors.IsErr(err, iterator.Done) {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {

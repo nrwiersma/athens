@@ -112,11 +112,11 @@ func (c *azureBlobStoreClient) BlobExists(ctx context.Context, path string) (boo
 	blobURL := c.containerURL.NewBlockBlobURL(path)
 	_, err := blobURL.GetProperties(ctx, azblob.BlobAccessConditions{}, azblob.ClientProvidedKeyOptions{})
 	if err != nil {
-		var serr azblob.StorageError
-		if !errors.AsErr(err, &serr) {
+		sErr, ok := errors.AsType[azblob.StorageError](err)
+		if !ok {
 			return false, errors.E(op, fmt.Errorf("error in casting to azure error type %w", err))
 		}
-		if serr.Response().StatusCode == http.StatusNotFound {
+		if sErr.Response().StatusCode == http.StatusNotFound {
 			return false, nil
 		}
 

@@ -125,7 +125,7 @@ func (p *protocol) List(ctx context.Context, mod string) ([]string, error) {
 
 	// if i.e. github is unavailable we should fail as well so that the behavior of the proxy is stable.
 	// otherwise we will get different results the next time because i.e. GH is up again
-	isUnexpGoErr := goErr != nil && !errors.IsRepoNotFoundErr(goErr)
+	isUnexpGoErr := goErr != nil && !isRepoNotFoundError(goErr)
 	if isUnexpGoErr && p.networkMode == Strict {
 		return nil, errors.E(op, goErr)
 	}
@@ -136,7 +136,7 @@ func (p *protocol) List(ctx context.Context, mod string) ([]string, error) {
 		return strList, nil
 	}
 
-	isRepoNotFoundErr := goErr != nil && errors.IsRepoNotFoundErr(goErr)
+	isRepoNotFoundErr := goErr != nil && isRepoNotFoundError(goErr)
 	storageEmpty := len(strList) == 0
 	// if storage has no versions, and the repo was deleted/not-found, we know for sure
 	// there are no versions that Athens can serve, so just return an error.
@@ -159,6 +159,10 @@ func (p *protocol) List(ctx context.Context, mod string) ([]string, error) {
 	// from now on every time user runs go get github.com/my/mod she/he will get pseudo version x1 even if a newer version x2 exists
 	// this is because /list returns non-empty list of versions (x1) and so /latest wont get hit
 	return union(goList, strListSemVers), nil
+}
+
+func isRepoNotFoundError(err error) bool {
+	return strings.Contains(err.Error(), "remote: Repository not found")
 }
 
 var pseudoVersionRE = regexp.MustCompile(`^v[0-9]+\.(0\.0-|\d+\.\d+-([^+]*\.)?0\.)\d{14}-[A-Za-z0-9]+(\+incompatible)?$`)
@@ -199,7 +203,7 @@ func (p *protocol) Info(ctx context.Context, mod, ver string) ([]byte, error) {
 	info, err := p.storage.Info(ctx, mod, ver)
 	if err == nil {
 		observ.RecordCacheLookup(ctx, "hit", "info")
-	} else if errors.IsNotFoundErr(err) {
+	} else if errors.IsKind(err, errors.KindNotFound) {
 		observ.RecordCacheLookup(ctx, "miss", "info")
 		err = p.processDownload(ctx, mod, ver, func(newVer string) error {
 			info, err = p.storage.Info(ctx, mod, newVer)
@@ -220,7 +224,7 @@ func (p *protocol) GoMod(ctx context.Context, mod, ver string) ([]byte, error) {
 	goMod, err := p.storage.GoMod(ctx, mod, ver)
 	if err == nil {
 		observ.RecordCacheLookup(ctx, "hit", "gomod")
-	} else if errors.IsNotFoundErr(err) {
+	} else if errors.IsKind(err, errors.KindNotFound) {
 		observ.RecordCacheLookup(ctx, "miss", "gomod")
 		err = p.processDownload(ctx, mod, ver, func(newVer string) error {
 			goMod, err = p.storage.GoMod(ctx, mod, newVer)
@@ -240,7 +244,7 @@ func (p *protocol) Zip(ctx context.Context, mod, ver string) (storage.SizeReadCl
 	zip, err := p.storage.Zip(ctx, mod, ver)
 	if err == nil {
 		observ.RecordCacheLookup(ctx, "hit", "zip")
-	} else if errors.IsNotFoundErr(err) {
+	} else if errors.IsKind(err, errors.KindNotFound) {
 		observ.RecordCacheLookup(ctx, "miss", "zip")
 		err = p.processDownload(ctx, mod, ver, func(newVer string) error {
 			zip, err = p.storage.Zip(ctx, mod, newVer)

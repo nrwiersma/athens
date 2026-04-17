@@ -10,7 +10,7 @@ import (
 	"github.com/gomods/athens/pkg/config"
 	"github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
-	googleapi "google.golang.org/api/googleapi"
+	"google.golang.org/api/googleapi"
 )
 
 // Save uploads the module's .mod, .zip and .info files for a given version
@@ -45,19 +45,19 @@ func (s *Storage) save(ctx context.Context, module, version string, mod []byte, 
 	gomodPath := config.PackageVersionedName(module, version, "mod")
 	err := s.upload(ctx, gomodPath, bytes.NewReader(mod), nil, false)
 	// KindAlreadyExists means the file is uploaded (somewhere else) successfully.
-	if err != nil && !errors.Is(err, errors.KindAlreadyExists) {
+	if err != nil && !errors.IsKind(err, errors.KindAlreadyExists) {
 		return errors.E(op, err)
 	}
 
 	zipPath := config.PackageVersionedName(module, version, "zip")
 	err = s.upload(ctx, zipPath, zip, zipMD5, true)
-	if err != nil && !errors.Is(err, errors.KindAlreadyExists) {
+	if err != nil && !errors.IsKind(err, errors.KindAlreadyExists) {
 		return errors.E(op, err)
 	}
 
 	infoPath := config.PackageVersionedName(module, version, "info")
 	err = s.upload(ctx, infoPath, bytes.NewReader(info), nil, false)
-	if err != nil && !errors.Is(err, errors.KindAlreadyExists) {
+	if err != nil && !errors.IsKind(err, errors.KindAlreadyExists) {
 		return errors.E(op, err)
 	}
 
@@ -79,7 +79,7 @@ func (s *Storage) upload(ctx context.Context, path string, stream io.Reader, md5
 		if err == nil {
 			// The file already exists, no need to upload it again.
 			return nil
-		} else if !errors.IsErr(err, storage.ErrObjectNotExist) {
+		} else if !errors.Is(err, storage.ErrObjectNotExist) {
 			// Not expected error, return it.
 			return errors.E(op, err)
 		}
@@ -105,8 +105,7 @@ func (s *Storage) upload(ctx context.Context, path string, stream io.Reader, md5
 	err := wc.Close()
 	if err != nil {
 		kind := errors.KindBadRequest
-		apiErr := &googleapi.Error{}
-		if errors.AsErr(err, &apiErr) && apiErr.Code == 412 {
+		if apiErr, ok := errors.AsType[*googleapi.Error](err); ok && apiErr.Code == 412 {
 			kind = errors.KindAlreadyExists
 		}
 		return errors.E(op, err, kind)
