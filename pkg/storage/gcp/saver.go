@@ -3,12 +3,13 @@ package gcp
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 	"google.golang.org/api/googleapi"
 )
@@ -21,12 +22,12 @@ import (
 // Uploaded files are publicly accessible in the storage bucket as per
 // an ACL rule.
 func (s *Storage) Save(ctx context.Context, module, version string, mod []byte, zip io.Reader, zipMD5, info []byte) error {
-	const op errors.Op = "gcp.save"
+	const op apierrors.Op = "gcp.save"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	err := s.save(ctx, module, version, mod, zip, zipMD5, info)
 	if err != nil {
-		return errors.E(op, err)
+		return apierrors.E(op, err)
 	}
 	return err
 }
@@ -38,34 +39,34 @@ func (s *Storage) SetStaleThreshold(threshold time.Duration) {
 }
 
 func (s *Storage) save(ctx context.Context, module, version string, mod []byte, zip io.Reader, zipMD5, info []byte) error {
-	const op errors.Op = "gcp.save"
+	const op apierrors.Op = "gcp.save"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 
 	gomodPath := config.PackageVersionedName(module, version, "mod")
 	err := s.upload(ctx, gomodPath, bytes.NewReader(mod), nil, false)
 	// KindAlreadyExists means the file is uploaded (somewhere else) successfully.
-	if err != nil && !errors.IsKind(err, errors.KindAlreadyExists) {
-		return errors.E(op, err)
+	if err != nil && !apierrors.IsKind(err, apierrors.KindAlreadyExists) {
+		return apierrors.E(op, err)
 	}
 
 	zipPath := config.PackageVersionedName(module, version, "zip")
 	err = s.upload(ctx, zipPath, zip, zipMD5, true)
-	if err != nil && !errors.IsKind(err, errors.KindAlreadyExists) {
-		return errors.E(op, err)
+	if err != nil && !apierrors.IsKind(err, apierrors.KindAlreadyExists) {
+		return apierrors.E(op, err)
 	}
 
 	infoPath := config.PackageVersionedName(module, version, "info")
 	err = s.upload(ctx, infoPath, bytes.NewReader(info), nil, false)
-	if err != nil && !errors.IsKind(err, errors.KindAlreadyExists) {
-		return errors.E(op, err)
+	if err != nil && !apierrors.IsKind(err, apierrors.KindAlreadyExists) {
+		return apierrors.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *Storage) upload(ctx context.Context, path string, stream io.Reader, md5 []byte, checkBefore bool) error {
-	const op errors.Op = "gcp.upload"
+	const op apierrors.Op = "gcp.upload"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	cancelCtx, cancel := context.WithCancel(ctx)
@@ -81,7 +82,7 @@ func (s *Storage) upload(ctx context.Context, path string, stream io.Reader, md5
 			return nil
 		} else if !errors.Is(err, storage.ErrObjectNotExist) {
 			// Not expected error, return it.
-			return errors.E(op, err)
+			return apierrors.E(op, err)
 		}
 		// Otherwise, the error is ErrObjectNotExist, so we should upload the file.
 	}
@@ -104,11 +105,11 @@ func (s *Storage) upload(ctx context.Context, path string, stream io.Reader, md5
 
 	err := wc.Close()
 	if err != nil {
-		kind := errors.KindBadRequest
+		kind := apierrors.KindBadRequest
 		if apiErr, ok := errors.AsType[*googleapi.Error](err); ok && apiErr.Code == 412 {
-			kind = errors.KindAlreadyExists
+			kind = apierrors.KindAlreadyExists
 		}
-		return errors.E(op, err, kind)
+		return apierrors.E(op, err, kind)
 	}
 	return nil
 }

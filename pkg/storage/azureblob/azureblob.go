@@ -2,6 +2,7 @@ package azureblob
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,7 +14,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 	"github.com/gomods/athens/pkg/storage"
 )
@@ -30,20 +31,20 @@ const (
 )
 
 func newBlobStoreClient(accountURL *url.URL, accountName, accountKey, credScope, managedIdentityResourceID, containerName string) (*azureBlobStoreClient, error) {
-	const op errors.Op = "azureblob.newBlobStoreClient"
+	const op apierrors.Op = "azureblob.newBlobStoreClient"
 	var pipe pipeline.Pipeline
 	if managedIdentityResourceID != "" {
 		msiCred, err := azidentity.NewManagedIdentityCredential(&azidentity.ManagedIdentityCredentialOptions{
 			ID: azidentity.ResourceID(managedIdentityResourceID),
 		})
 		if err != nil {
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 		token, err := msiCred.GetToken(context.Background(), policy.TokenRequestOptions{
 			Scopes: []string{credScope},
 		})
 		if err != nil {
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 		tokenCred := azblob.NewTokenCredential(token.Token, func(tc azblob.TokenCredential) time.Duration {
 			fmt.Printf("refreshing token started at: %s", time.Now())
@@ -67,7 +68,7 @@ func newBlobStoreClient(accountURL *url.URL, accountName, accountKey, credScope,
 	if pipe == nil && accountKey != "" {
 		cred, err := azblob.NewSharedKeyCredential(accountName, accountKey)
 		if err != nil {
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 		pipe = azblob.NewPipeline(cred, azblob.PipelineOptions{})
 	}
@@ -90,48 +91,48 @@ type Storage struct {
 
 // New creates a new azure blobs storage.
 func New(conf *config.AzureBlobStorage, timeout time.Duration) (*Storage, error) {
-	const op errors.Op = "azureblob.New"
+	const op apierrors.Op = "azureblob.New"
 	u, err := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", conf.AccountName))
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	if conf.AccountKey == "" && (conf.ManagedIdentityResourceID == "" || conf.CredentialScope == "") {
-		return nil, errors.E(op, "either account key or managed identity resource id and storage resource must be set")
+		return nil, apierrors.E(op, "either account key or managed identity resource id and storage resource must be set")
 	}
 	cl, err := newBlobStoreClient(u, conf.AccountName, conf.AccountKey, conf.CredentialScope, conf.ManagedIdentityResourceID, conf.ContainerName)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	return &Storage{client: cl, timeout: timeout}, nil
 }
 
 // BlobExists checks if a particular blob exists in the container.
 func (c *azureBlobStoreClient) BlobExists(ctx context.Context, path string) (bool, error) {
-	const op errors.Op = "azureblob.BlobExists"
+	const op apierrors.Op = "azureblob.BlobExists"
 	// TODO: Any better way of doing this ?
 	blobURL := c.containerURL.NewBlockBlobURL(path)
 	_, err := blobURL.GetProperties(ctx, azblob.BlobAccessConditions{}, azblob.ClientProvidedKeyOptions{})
 	if err != nil {
 		sErr, ok := errors.AsType[azblob.StorageError](err)
 		if !ok {
-			return false, errors.E(op, fmt.Errorf("error in casting to azure error type %w", err))
+			return false, apierrors.E(op, fmt.Errorf("error in casting to azure error type %w", err))
 		}
 		if sErr.Response().StatusCode == http.StatusNotFound {
 			return false, nil
 		}
 
-		return false, errors.E(op, err)
+		return false, apierrors.E(op, err)
 	}
 	return true, nil
 }
 
 // ReadBlob returns a storage.SizeReadCloser for the contents of a blob.
 func (c *azureBlobStoreClient) ReadBlob(ctx context.Context, path string) (storage.SizeReadCloser, error) {
-	const op errors.Op = "azureblob.ReadBlob"
+	const op apierrors.Op = "azureblob.ReadBlob"
 	blobURL := c.containerURL.NewBlockBlobURL(path)
 	downloadResponse, err := blobURL.Download(ctx, 0, 0, azblob.BlobAccessConditions{}, false, azblob.ClientProvidedKeyOptions{})
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	rc := downloadResponse.Body(azblob.RetryReaderOptions{})
 	size := downloadResponse.ContentLength()
@@ -140,14 +141,14 @@ func (c *azureBlobStoreClient) ReadBlob(ctx context.Context, path string) (stora
 
 // ListBlobs will list all blobs which has the given prefix.
 func (c *azureBlobStoreClient) ListBlobs(ctx context.Context, prefix string) ([]string, error) {
-	const op errors.Op = "azureblob.ListBlobs"
+	const op apierrors.Op = "azureblob.ListBlobs"
 	var blobs []string
 	for marker := (azblob.Marker{}); marker.NotDone(); {
 		listBlob, err := c.containerURL.ListBlobsFlatSegment(ctx, marker, azblob.ListBlobsSegmentOptions{
 			Prefix: prefix,
 		})
 		if err != nil {
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 		marker = listBlob.NextMarker
 
@@ -161,18 +162,18 @@ func (c *azureBlobStoreClient) ListBlobs(ctx context.Context, prefix string) ([]
 
 // DeleteBlob deletes the blob with the given path.
 func (c *azureBlobStoreClient) DeleteBlob(ctx context.Context, path string) error {
-	const op errors.Op = "azureblob.DeleteBlob"
+	const op apierrors.Op = "azureblob.DeleteBlob"
 	blobURL := c.containerURL.NewBlockBlobURL(path)
 	_, err := blobURL.Delete(ctx, azblob.DeleteSnapshotsOptionNone, azblob.BlobAccessConditions{})
 	if err != nil {
-		return errors.E(op, err)
+		return apierrors.E(op, err)
 	}
 	return nil
 }
 
 // UploadWithContext uploads a blob to the container.
 func (c *azureBlobStoreClient) UploadWithContext(ctx context.Context, path, contentType string, content io.Reader) error {
-	const op errors.Op = "azureblob.UploadWithContext"
+	const op apierrors.Op = "azureblob.UploadWithContext"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	blobURL := c.containerURL.NewBlockBlobURL(path)
@@ -188,7 +189,7 @@ func (c *azureBlobStoreClient) UploadWithContext(ctx context.Context, path, cont
 	}
 	_, err := azblob.UploadStreamToBlockBlob(ctx, content, blobURL, uploadStreamOpts)
 	if err != nil {
-		return errors.E(op, err)
+		return apierrors.E(op, err)
 	}
 	return nil
 }

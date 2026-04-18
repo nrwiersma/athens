@@ -3,7 +3,7 @@ package mongo
 import (
 	"context"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/paths"
 	"github.com/gomods/athens/pkg/storage"
 	"github.com/hashicorp/go-multierror"
@@ -14,7 +14,7 @@ import (
 // Catalog implements the (./pkg/storage).Cataloger interface.
 // It returns a list of modules and versions contained in the storage.
 func (s *ModuleStore) Catalog(ctx context.Context, token string, pageSize int) ([]paths.AllPathParams, string, error) {
-	const op errors.Op = "mongo.Catalog"
+	const op apierrors.Op = "mongo.Catalog"
 	q := bson.M{}
 	if token != "" {
 		t, err := bson.ObjectIDFromHex(token)
@@ -34,7 +34,7 @@ func (s *ModuleStore) Catalog(ctx context.Context, token string, pageSize int) (
 	findOptions := options.Find().SetProjection(projection).SetSort(sort).SetLimit(int64(pageSize))
 	cursor, err := c.Find(tctx, q, findOptions)
 	if err != nil {
-		return nil, "", errors.E(op, err)
+		return nil, "", apierrors.E(op, err)
 	}
 
 	var errs error

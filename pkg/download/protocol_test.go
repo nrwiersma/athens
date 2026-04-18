@@ -15,7 +15,7 @@ import (
 
 	"github.com/gomods/athens/pkg/config/configtest"
 	"github.com/gomods/athens/pkg/download/mode"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/index/nop"
 	"github.com/gomods/athens/pkg/log"
 	"github.com/gomods/athens/pkg/module"
@@ -124,7 +124,7 @@ var listModeTests = []listModeTest{
 		path:         "github.com/athens-artifacts/happy-path",
 		storageTags:  []string{"v0.0.4"},
 		upstreamList: []string{},
-		upstreamErr:  errors.E("test", "unexpected error"),
+		upstreamErr:  apierrors.E("test", "unexpected error"),
 		wantTags:     []string{"v0.0.4"},
 	},
 	{
@@ -133,7 +133,7 @@ var listModeTests = []listModeTest{
 		path:         "github.com/athens-artifacts/happy-path",
 		storageTags:  []string{"v0.0.4"},
 		upstreamList: []string{},
-		upstreamErr:  errors.E("test", "remote: Repository not found", errors.KindNotFound),
+		upstreamErr:  apierrors.E("test", "remote: Repository not found", apierrors.KindNotFound),
 		wantTags:     []string{"v0.0.4"},
 	},
 	{
@@ -142,7 +142,7 @@ var listModeTests = []listModeTest{
 		path:         "github.com/athens-artifacts/happy-path",
 		storageTags:  []string{},
 		upstreamList: []string{},
-		upstreamErr:  errors.E("test", "remote: Repository not found", errors.KindNotFound),
+		upstreamErr:  apierrors.E("test", "remote: Repository not found", apierrors.KindNotFound),
 		wantTags:     nil,
 		wantErr:      true,
 	},
@@ -454,8 +454,8 @@ func TestAsyncRedirect(t *testing.T) {
 	})
 	mod, ver := "github.com/athens-artifacts/happy-path", "v0.0.1"
 	_, err = dp.Info(t.Context(), mod, ver)
-	if errors.Kind(err) != errors.KindNotFound {
-		t.Fatalf("expected async_redirect to enforce a 404 but got %v", errors.Kind(err))
+	if apierrors.Kind(err) != apierrors.KindNotFound {
+		t.Fatalf("expected async_redirect to enforce a 404 but got %v", apierrors.Kind(err))
 	}
 	<-ms.ch
 	info, err := dp.Info(t.Context(), mod, ver)
@@ -477,8 +477,8 @@ func (ms *mockStasher) Stash(ctx context.Context, mod string, ver string) (strin
 type notFoundFetcher struct{}
 
 func (m *notFoundFetcher) Fetch(ctx context.Context, mod, ver string) (*storage.Version, error) {
-	const op errors.Op = "goGetFetcher.Fetch"
-	return nil, errors.E(op, "Fetcher error")
+	const op apierrors.Op = "goGetFetcher.Fetch"
+	return nil, apierrors.E(op, "Fetcher error")
 }
 
 type mockLister struct {

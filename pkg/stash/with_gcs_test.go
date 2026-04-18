@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/storage"
 	"github.com/gomods/athens/pkg/storage/gcp"
 	"github.com/google/uuid"
@@ -40,7 +40,7 @@ func TestWithGCS(t *testing.T) {
 
 	// sanity check
 	_, err := strg.GoMod(ctx, mod, ver)
-	if !errors.IsKind(err, errors.KindNotFound) {
+	if !apierrors.IsKind(err, apierrors.KindNotFound) {
 		t.Fatalf("expected the stash bucket to return a NotFound error but got: %v", err)
 	}
 
@@ -106,7 +106,7 @@ func TestWithGCSPartialFailure(t *testing.T) {
 
 	// sanity check
 	_, err := strg.GoMod(ctx, mod, ver)
-	if !errors.IsKind(err, errors.KindNotFound) {
+	if !apierrors.IsKind(err, apierrors.KindNotFound) {
 		t.Fatalf("expected the stash bucket to return a NotFound error but got: %v", err)
 	}
 

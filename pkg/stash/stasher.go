@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/index"
 	"github.com/gomods/athens/pkg/log"
 	"github.com/gomods/athens/pkg/module"
@@ -48,7 +48,7 @@ type stasher struct {
 }
 
 func (s *stasher) Stash(ctx context.Context, mod, ver string) (string, error) {
-	const op errors.Op = "stasher.Stash"
+	const op apierrors.Op = "stasher.Stash"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	log.EntryFromContext(ctx).Debugf("saving %s@%s to storage...", mod, ver)
@@ -60,13 +60,13 @@ func (s *stasher) Stash(ctx context.Context, mod, ver string) (string, error) {
 		defer cancel()
 		v, err := s.fetchModule(ctx, mod, ver)
 		if err != nil {
-			return "", errors.E(op, err)
+			return "", apierrors.E(op, err)
 		}
 		defer func() { _ = v.Zip.Close() }()
 		if v.Semver != ver {
 			exists, err := s.checker.Exists(ctx, mod, v.Semver)
 			if err != nil {
-				return "", errors.E(op, err)
+				return "", apierrors.E(op, err)
 			}
 			if exists {
 				return v.Semver, nil
@@ -74,11 +74,11 @@ func (s *stasher) Stash(ctx context.Context, mod, ver string) (string, error) {
 		}
 		err = s.storage.Save(ctx, mod, v.Semver, v.Mod, v.Zip, v.ZipMD5, v.Info)
 		if err != nil {
-			return "", errors.E(op, err)
+			return "", apierrors.E(op, err)
 		}
 		err = s.indexer.Index(ctx, mod, v.Semver)
-		if err != nil && !errors.IsKind(err, errors.KindAlreadyExists) {
-			return "", errors.E(op, err)
+		if err != nil && !apierrors.IsKind(err, apierrors.KindAlreadyExists) {
+			return "", apierrors.E(op, err)
 		}
 		return v.Semver, nil
 	})
@@ -88,13 +88,13 @@ func (s *stasher) Stash(ctx context.Context, mod, ver string) (string, error) {
 
 	semver, ok := semver_.(string)
 	if !ok {
-		return "", errors.E(op, "unexpected type assertion failure for semver", errors.KindUnexpected)
+		return "", apierrors.E(op, "unexpected type assertion failure for semver", apierrors.KindUnexpected)
 	}
 	return semver, nil
 }
 
 func (s *stasher) fetchModule(ctx context.Context, mod, ver string) (*storage.Version, error) {
-	const op errors.Op = "stasher.fetchModule"
+	const op apierrors.Op = "stasher.fetchModule"
 	start := time.Now()
 	v, err := s.fetcher.Fetch(ctx, mod, ver)
 	duration := time.Since(start)
@@ -102,7 +102,7 @@ func (s *stasher) fetchModule(ctx context.Context, mod, ver string) (*storage.Ve
 	if err != nil {
 		observ.RecordUpstreamFetch(ctx, "failure")
 		observ.RecordUpstreamFetchDuration(ctx, "failure", duration)
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	observ.RecordUpstreamFetch(ctx, "success")

@@ -2,12 +2,13 @@ package fs
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 	"github.com/gomods/athens/pkg/paths"
 	"github.com/spf13/afero"
@@ -18,13 +19,13 @@ const tokenSeparator = "|"
 // Catalog implements the (./pkg/storage).Cataloger interface.
 // It returns a list of modules and versions contained in the storage.
 func (s *storageImpl) Catalog(ctx context.Context, token string, pageSize int) ([]paths.AllPathParams, string, error) {
-	const op errors.Op = "fs.Catalog"
+	const op apierrors.Op = "fs.Catalog"
 	_, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 
 	fromModule, fromVersion, err := modVerFromToken(token)
 	if err != nil {
-		return nil, "", errors.E(op, err, errors.KindBadRequest)
+		return nil, "", apierrors.E(op, err, apierrors.KindBadRequest)
 	}
 
 	res := make([]paths.AllPathParams, 0)
@@ -61,7 +62,7 @@ func (s *storageImpl) Catalog(ctx context.Context, token string, pageSize int) (
 		return nil
 	})
 	if err != nil && !errors.Is(err, io.EOF) {
-		return nil, "", errors.E(op, err, errors.KindUnexpected)
+		return nil, "", apierrors.E(op, err, apierrors.KindUnexpected)
 	}
 
 	return res, resToken, nil
@@ -72,13 +73,13 @@ func tokenFromModVer(module, version string) string {
 }
 
 func modVerFromToken(token string) (string, string, error) {
-	const op errors.Op = "fs.Catalog"
+	const op apierrors.Op = "fs.Catalog"
 	if token == "" {
 		return "", "", nil
 	}
 	values := strings.Split(token, tokenSeparator)
 	if len(values) < 2 {
-		return "", "", errors.E(op, "Invalid token")
+		return "", "", apierrors.E(op, "Invalid token")
 	}
 	return values[0], values[1], nil
 }

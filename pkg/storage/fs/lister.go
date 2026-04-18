@@ -5,14 +5,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 	"github.com/spf13/afero"
 	"golang.org/x/mod/semver"
 )
 
 func (s *storageImpl) List(ctx context.Context, module string) ([]string, error) {
-	const op errors.Op = "fs.List"
+	const op apierrors.Op = "fs.List"
 	_, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	loc := s.moduleLocation(module)
@@ -22,7 +22,7 @@ func (s *storageImpl) List(ctx context.Context, module string) ([]string, error)
 			return []string{}, nil
 		}
 
-		return nil, errors.E(op, errors.M(module), err, errors.KindUnexpected)
+		return nil, apierrors.E(op, apierrors.M(module), err, apierrors.KindUnexpected)
 	}
 	ret := []string{}
 	for _, fileInfo := range fileInfos {

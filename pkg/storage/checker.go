@@ -3,7 +3,7 @@ package storage
 import (
 	"context"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 )
 
 // Checker is the interface that checks if the version of the module exists.
@@ -28,7 +28,7 @@ type checker struct {
 func (c *checker) Exists(ctx context.Context, module, version string) (bool, error) {
 	_, err := c.strg.Info(ctx, module, version)
 	if err != nil {
-		if errors.IsKind(err, errors.KindNotFound) {
+		if apierrors.IsKind(err, apierrors.KindNotFound) {
 			return false, nil
 		}
 		return false, err

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/index"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -93,8 +93,8 @@ func RunTests(t *testing.T, indexer index.Indexer, clearIndex func() error) {
 					t.Fatal(err)
 				}
 				err = indexer.Index(t.Context(), m.Path, m.Version)
-				if !errors.IsKind(err, errors.KindAlreadyExists) {
-					t.Fatalf("expected an error of kind AlreadyExists but got %s", errors.KindText(err))
+				if !apierrors.IsKind(err, apierrors.KindAlreadyExists) {
+					t.Fatalf("expected an error of kind AlreadyExists but got %s", apierrors.KindText(err))
 				}
 				return []*index.Line{m}, time.Time{}
 			},

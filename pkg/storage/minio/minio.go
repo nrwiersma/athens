@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/storage"
 	minio "github.com/minio/minio-go/v6"
 )
@@ -24,7 +24,7 @@ func (s *storageImpl) versionLocation(module, version string) string {
 // NewStorage returns a connected Minio or DigitalOcean Spaces storage
 // that implements storage.Backend.
 func NewStorage(conf *config.MinioStorage, timeout time.Duration) (storage.Backend, error) {
-	const op errors.Op = "minio.NewStorage"
+	const op apierrors.Op = "minio.NewStorage"
 	endpoint := TrimHTTP(conf.Endpoint)
 	accessKeyID := conf.Key
 	secretAccessKey := conf.Secret
@@ -33,11 +33,11 @@ func NewStorage(conf *config.MinioStorage, timeout time.Duration) (storage.Backe
 	useSSL := conf.EnableSSL
 	minioCore, err := minio.NewCore(endpoint, accessKeyID, secretAccessKey, useSSL)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	minioClient, err := minio.New(endpoint, accessKeyID, secretAccessKey, useSSL)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	err = minioClient.MakeBucket(bucketName, region)
@@ -45,11 +45,11 @@ func NewStorage(conf *config.MinioStorage, timeout time.Duration) (storage.Backe
 		// Check to see if we already own this bucket
 		exists, err := minioClient.BucketExists(bucketName)
 		if err != nil {
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 		if !exists {
 			// MakeBucket Error takes priority
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 	}
 	return &storageImpl{minioClient, minioCore, bucketName}, nil

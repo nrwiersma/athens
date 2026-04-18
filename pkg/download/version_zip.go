@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gomods/athens/pkg/download/mode"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/log"
 )
 
@@ -15,30 +15,30 @@ const PathVersionZip = "/{module:.+}/@v/{version}.zip"
 
 // ZipHandler implements GET baseURL/module/@v/version.zip.
 func ZipHandler(dp Protocol, lggr log.Entry, df *mode.DownloadFile) http.Handler {
-	const op errors.Op = "download.ZipHandler"
+	const op apierrors.Op = "download.ZipHandler"
 	f := func(w http.ResponseWriter, r *http.Request) {
 		mod, ver, err := getModuleParams(r, op)
 		if err != nil {
 			lggr.SystemErr(err)
-			w.WriteHeader(errors.Kind(err))
+			w.WriteHeader(apierrors.Kind(err))
 			return
 		}
 		zip, err := dp.Zip(r.Context(), mod, ver)
 		if err != nil {
-			severityLevel := errors.Expect(err, errors.KindNotFound, errors.KindRedirect)
-			err = errors.E(op, err, severityLevel)
+			severityLevel := apierrors.Expect(err, apierrors.KindNotFound, apierrors.KindRedirect)
+			err = apierrors.E(op, err, severityLevel)
 			lggr.SystemErr(err)
-			if errors.Kind(err) == errors.KindRedirect {
+			if apierrors.Kind(err) == apierrors.KindRedirect {
 				url, err := getRedirectURL(df.URL(mod), r.URL.Path)
 				if err != nil {
 					lggr.SystemErr(err)
-					w.WriteHeader(errors.Kind(err))
+					w.WriteHeader(apierrors.Kind(err))
 					return
 				}
-				http.Redirect(w, r, url, errors.KindRedirect)
+				http.Redirect(w, r, url, apierrors.KindRedirect)
 				return
 			}
-			w.WriteHeader(errors.Kind(err))
+			w.WriteHeader(apierrors.Kind(err))
 			return
 		}
 		defer func() { _ = zip.Close() }()
@@ -53,7 +53,7 @@ func ZipHandler(dp Protocol, lggr log.Entry, df *mode.DownloadFile) http.Handler
 		}
 		_, err = io.Copy(w, zip)
 		if err != nil {
-			lggr.SystemErr(errors.E(op, errors.M(mod), errors.V(ver), err))
+			lggr.SystemErr(apierrors.E(op, apierrors.M(mod), apierrors.V(ver), err))
 		}
 	}
 	return http.HandlerFunc(f)

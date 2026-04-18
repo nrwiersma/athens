@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 	"github.com/gomods/athens/pkg/storage"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -21,7 +21,7 @@ func WithEtcd(endpoints []string, checker storage.Checker) (Wrapper, error) {
 		DialTimeout: 5 * time.Second,
 	})
 	if err != nil {
-		return nil, errors.E("stash.WithEtcd", err)
+		return nil, apierrors.E("stash.WithEtcd", err)
 	}
 	return func(s Stasher) Stasher {
 		return &etcd{client: c, stasher: s, checker: checker}
@@ -35,25 +35,25 @@ type etcd struct {
 }
 
 func (s *etcd) Stash(ctx context.Context, mod, ver string) (newVer string, err error) {
-	const op errors.Op = "etcd.Stash"
+	const op apierrors.Op = "etcd.Stash"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 
 	sess, err := concurrency.NewSession(s.client)
 	if err != nil {
-		return "", errors.E(op, err)
+		return "", apierrors.E(op, err)
 	}
 	defer sess.Close()
 
 	m := concurrency.NewMutex(sess, config.FmtModVer(mod, ver))
 	if err := m.Lock(ctx); err != nil {
-		return "", errors.E(op, err)
+		return "", apierrors.E(op, err)
 	}
 	defer m.Unlock(ctx)
 
 	ok, err := s.checker.Exists(ctx, mod, ver)
 	if err != nil {
-		return "", errors.E(op, err)
+		return "", apierrors.E(op, err)
 	}
 
 	if ok {
@@ -62,7 +62,7 @@ func (s *etcd) Stash(ctx context.Context, mod, ver string) (newVer string, err e
 
 	newVer, err = s.stasher.Stash(ctx, mod, ver)
 	if err != nil {
-		return "", errors.E(op, err)
+		return "", apierrors.E(op, err)
 	}
 	return newVer, nil
 }

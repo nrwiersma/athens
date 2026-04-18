@@ -7,7 +7,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 )
@@ -63,8 +63,8 @@ func (s *ModuleSuite) TestNotFoundFetches() {
 	if err == nil {
 		s.Fail("expected an error but got nil")
 	}
-	if errors.Kind(err) != errors.KindNotFound {
-		s.Failf("incorrect error kind", "expected a not found error but got %v", errors.Kind(err))
+	if apierrors.Kind(err) != apierrors.KindNotFound {
+		s.Failf("incorrect error kind", "expected a not found error but got %v", apierrors.Kind(err))
 	}
 }
 

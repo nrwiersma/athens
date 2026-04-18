@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/gomods/athens/pkg/download/mode"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/log"
 	"github.com/gomods/athens/pkg/storage"
 	"github.com/gorilla/mux"
@@ -49,16 +49,16 @@ type mockProtocol struct {
 }
 
 func (mp *mockProtocol) Info(ctx context.Context, mod, ver string) ([]byte, error) {
-	const op errors.Op = "mockProtocol.Info"
-	return nil, errors.E(op, "not found", errors.KindRedirect)
+	const op apierrors.Op = "mockProtocol.Info"
+	return nil, apierrors.E(op, "not found", apierrors.KindRedirect)
 }
 
 func (mp *mockProtocol) GoMod(ctx context.Context, mod, ver string) ([]byte, error) {
-	const op errors.Op = "mockProtocol.GoMod"
-	return nil, errors.E(op, "not found", errors.KindRedirect)
+	const op apierrors.Op = "mockProtocol.GoMod"
+	return nil, apierrors.E(op, "not found", apierrors.KindRedirect)
 }
 
 func (mp *mockProtocol) Zip(ctx context.Context, mod, ver string) (storage.SizeReadCloser, error) {
-	const op errors.Op = "mockProtocol.Zip"
-	return nil, errors.E(op, "not found", errors.KindRedirect)
+	const op apierrors.Op = "mockProtocol.Zip"
+	return nil, apierrors.E(op, "not found", apierrors.KindRedirect)
 }

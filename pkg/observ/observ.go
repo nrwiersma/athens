@@ -7,7 +7,7 @@ import (
 	"contrib.go.opencensus.io/exporter/jaeger"
 	"contrib.go.opencensus.io/exporter/stackdriver"
 	datadog "github.com/DataDog/opencensus-go-exporter-datadog"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"go.opencensus.io/trace"
 )
 
@@ -15,7 +15,7 @@ import (
 // User can choose from multiple tracing services (datadog, jaegar)
 // RegisterExporter returns the 'Flush' function for that particular tracing service.
 func RegisterExporter(traceExporter, url, service, env string) (func(), error) {
-	const op errors.Op = "observ.RegisterExporter"
+	const op apierrors.Op = "observ.RegisterExporter"
 	switch traceExporter {
 	case "jaeger":
 		return registerJaegerExporter(url, service, env)
@@ -24,9 +24,9 @@ func RegisterExporter(traceExporter, url, service, env string) (func(), error) {
 	case "stackdriver":
 		return registerStackdriverExporter(url, env)
 	case "":
-		return nil, errors.E(op, "Exporter not specified. Traces won't be exported")
+		return nil, apierrors.E(op, "Exporter not specified. Traces won't be exported")
 	default:
-		return nil, errors.E(op, fmt.Sprintf("Exporter %s not supported. Please open PR or an issue at github.com/gomods/athens", traceExporter))
+		return nil, apierrors.E(op, fmt.Sprintf("Exporter %s not supported. Please open PR or an issue at github.com/gomods/athens", traceExporter))
 	}
 }
 
@@ -34,9 +34,9 @@ func RegisterExporter(traceExporter, url, service, env string) (func(), error) {
 // Currently uses the 'TraceExporter' variable in the config file.
 // It should in the future have a nice sampling rate defined.
 func registerJaegerExporter(url, service, env string) (func(), error) {
-	const op errors.Op = "observ.registerJaegarExporter"
+	const op apierrors.Op = "observ.registerJaegarExporter"
 	if url == "" {
-		return nil, errors.E(op, "Exporter URL is empty. Traces won't be exported")
+		return nil, apierrors.E(op, "Exporter URL is empty. Traces won't be exported")
 	}
 	ex, err := jaeger.NewExporter(jaeger.Options{
 		Endpoint: url,
@@ -51,7 +51,7 @@ func registerJaegerExporter(url, service, env string) (func(), error) {
 		},
 	})
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	traceRegisterExporter(ex, env)
 	return ex.Flush, nil
@@ -67,24 +67,24 @@ func traceRegisterExporter(exporter trace.Exporter, env string) {
 // registerDatadogTracerExporter creates a datadog exporter.
 // Currently uses the 'TraceExporter' variable in the config file.
 func registerDatadogExporter(url, service, env string) (func(), error) {
-	const op errors.Op = "observ.registerDatadogExporter"
+	const op apierrors.Op = "observ.registerDatadogExporter"
 	ex, err := datadog.NewExporter(
 		datadog.Options{
 			TraceAddr: url,
 			Service:   service,
 		})
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	traceRegisterExporter(ex, env)
 	return ex.Stop, nil
 }
 
 func registerStackdriverExporter(projectID, env string) (func(), error) {
-	const op errors.Op = "observ.registerStackdriverExporter"
+	const op apierrors.Op = "observ.registerStackdriverExporter"
 	ex, err := stackdriver.NewExporter(stackdriver.Options{ProjectID: projectID})
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	traceRegisterExporter(ex, env)
 	return ex.Flush, nil

@@ -3,14 +3,14 @@ package download
 import (
 	"net/http"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/paths"
 )
 
-func getModuleParams(r *http.Request, op errors.Op) (mod, ver string, err error) {
+func getModuleParams(r *http.Request, op apierrors.Op) (mod, ver string, err error) {
 	params, err := paths.GetAllParams(r)
 	if err != nil {
-		return "", "", errors.E(op, err, errors.KindBadRequest)
+		return "", "", apierrors.E(op, err, apierrors.KindBadRequest)
 	}
 
 	return params.Module, params.Version, nil

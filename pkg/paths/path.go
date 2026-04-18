@@ -5,27 +5,27 @@ import (
 	"path"
 	"strings"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gorilla/mux"
 )
 
 // GetModule gets the module from the path of a ?go-get=1 request.
 func GetModule(r *http.Request) (string, error) {
-	const op errors.Op = "paths.GetModule"
+	const op apierrors.Op = "paths.GetModule"
 	module := mux.Vars(r)["module"]
 	if module == "" {
-		return "", errors.E(op, "missing module parameter")
+		return "", apierrors.E(op, "missing module parameter")
 	}
 	return DecodePath(module)
 }
 
 // GetVersion gets the version from the path of a ?go-get=1 request.
 func GetVersion(r *http.Request) (string, error) {
-	const op errors.Op = "paths.GetVersion"
+	const op apierrors.Op = "paths.GetVersion"
 
 	version := mux.Vars(r)["version"]
 	if version == "" {
-		return "", errors.E(op, "missing version parameter")
+		return "", apierrors.E(op, "missing version parameter")
 	}
 	return DecodePath(version)
 }
@@ -39,15 +39,15 @@ type AllPathParams struct {
 
 // GetAllParams fetches the path params from r and returns them.
 func GetAllParams(r *http.Request) (*AllPathParams, error) {
-	const op errors.Op = "paths.GetAllParams"
+	const op apierrors.Op = "paths.GetAllParams"
 	mod, err := GetModule(r)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	version, err := GetVersion(r)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	return &AllPathParams{Module: mod, Version: version}, nil

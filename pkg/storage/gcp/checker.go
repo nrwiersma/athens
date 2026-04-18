@@ -2,10 +2,11 @@ package gcp
 
 import (
 	"context"
+	"errors"
 
 	"cloud.google.com/go/storage"
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 	"google.golang.org/api/iterator"
 )
@@ -13,7 +14,7 @@ import (
 // Exists implements the (./pkg/storage).Checker interface
 // returning true if the module at version exists in storage.
 func (s *Storage) Exists(ctx context.Context, module, version string) (bool, error) {
-	const op errors.Op = "gcp.Exists"
+	const op apierrors.Op = "gcp.Exists"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 
@@ -25,7 +26,7 @@ func (s *Storage) Exists(ctx context.Context, module, version string) (bool, err
 			break
 		}
 		if err != nil {
-			return false, errors.E(op, err, errors.M(module), errors.V(version))
+			return false, apierrors.E(op, err, apierrors.M(module), apierrors.V(version))
 		}
 		switch attrs.Name {
 		case config.PackageVersionedName(module, version, "info"):

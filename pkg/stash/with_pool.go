@@ -3,7 +3,7 @@ package stash
 import (
 	"context"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 )
 
@@ -41,7 +41,7 @@ func (s *withpool) listen() {
 }
 
 func (s *withpool) Stash(ctx context.Context, mod, ver string) (string, error) {
-	const op errors.Op = "stash.Pool"
+	const op apierrors.Op = "stash.Pool"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	var err error
@@ -53,7 +53,7 @@ func (s *withpool) Stash(ctx context.Context, mod, ver string) (string, error) {
 	}
 	<-done
 	if err != nil {
-		return "", errors.E(op, err)
+		return "", apierrors.E(op, err)
 	}
 
 	return newVer, nil

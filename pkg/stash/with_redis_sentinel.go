@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/storage"
 	"github.com/redis/go-redis/v9"
 )
@@ -14,11 +14,11 @@ import (
 func WithRedisSentinelLock(l RedisLogger, endpoints []string, master, sentinelPassword, redisUsername, redisPassword string, checker storage.Checker, lockConfig *config.RedisLockConfig) (Wrapper, error) {
 	redis.SetLogger(l)
 
-	const op errors.Op = "stash.WithRedisSentinelLock"
+	const op apierrors.Op = "stash.WithRedisSentinelLock"
 	// The redis client constructor does not return an error when no endpoints
 	// are provided, so we check for ourselves.
 	if len(endpoints) == 0 {
-		return nil, errors.E(op, "no endpoints specified")
+		return nil, apierrors.E(op, "no endpoints specified")
 	}
 	client := redis.NewFailoverClient(&redis.FailoverOptions{
 		MasterName:       master,
@@ -29,12 +29,12 @@ func WithRedisSentinelLock(l RedisLogger, endpoints []string, master, sentinelPa
 	})
 	_, err := client.Ping(context.Background()).Result()
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	lockOptions, err := lockOptionsFromConfig(lockConfig)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	return func(s Stasher) Stasher {

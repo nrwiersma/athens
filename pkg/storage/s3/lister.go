@@ -8,14 +8,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 )
 
 // List implements the (./pkg/storage).Lister interface.
 // It returns a list of versions, if any, for a given module.
 func (s *Storage) List(ctx context.Context, module string) ([]string, error) {
-	const op errors.Op = "s3.List"
+	const op apierrors.Op = "s3.List"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 
@@ -31,7 +31,7 @@ func (s *Storage) List(ctx context.Context, module string) ([]string, error) {
 	for paginator.HasMorePages() {
 		loo, err := paginator.NextPage(ctx)
 		if err != nil {
-			return nil, errors.E(op, err, errors.M(module))
+			return nil, apierrors.E(op, err, apierrors.M(module))
 		}
 		versions = slices.Concat(versions, extractVersions(loo.Contents))
 	}

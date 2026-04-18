@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/log"
 	"github.com/gomods/athens/pkg/paths"
 	"github.com/gomods/athens/pkg/storage"
@@ -20,12 +20,12 @@ type catalogRes struct {
 
 // catalogHandler implements GET baseURL/catalog.
 func catalogHandler(s storage.Backend) http.HandlerFunc {
-	const op errors.Op = "actions.CatalogHandler"
+	const op apierrors.Op = "actions.CatalogHandler"
 	cs, isCataloger := s.(storage.Cataloger)
 	f := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		if !isCataloger {
-			w.WriteHeader(errors.KindNotImplemented)
+			w.WriteHeader(apierrors.KindNotImplemented)
 			return
 		}
 
@@ -42,14 +42,14 @@ func catalogHandler(s storage.Backend) http.HandlerFunc {
 
 		modulesAndVersions, newToken, err := cs.Catalog(r.Context(), token, pageSize)
 		if err != nil {
-			lggr.SystemErr(errors.E(op, err))
-			w.WriteHeader(errors.Kind(err))
+			lggr.SystemErr(apierrors.E(op, err))
+			w.WriteHeader(apierrors.Kind(err))
 			return
 		}
 
 		res := catalogRes{modulesAndVersions, newToken}
 		if err = json.NewEncoder(w).Encode(res); err != nil {
-			lggr.SystemErr(errors.E(op, err))
+			lggr.SystemErr(apierrors.E(op, err))
 		}
 	}
 	return http.HandlerFunc(f)

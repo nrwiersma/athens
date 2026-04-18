@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 )
 
 var (
@@ -132,7 +132,7 @@ func (f *Filter) getAssociatedRule(version string, path ...string) FilterRule {
 }
 
 func initFromConfig(filePath string) (*Filter, error) {
-	const op errors.Op = "module.initFromConfig"
+	const op apierrors.Op = "module.initFromConfig"
 	lines, err := getConfigLines(filePath)
 	if err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ func initFromConfig(filePath string) (*Filter, error) {
 
 		split := strings.Split(line, " ")
 		if len(split) > 3 {
-			return nil, errors.E(op, "Invalid configuration found in filter file at the line "+strconv.Itoa(idx+1))
+			return nil, apierrors.E(op, "Invalid configuration found in filter file at the line "+strconv.Itoa(idx+1))
 		}
 
 		ruleSign := strings.TrimSpace(split[0])
@@ -168,7 +168,7 @@ func initFromConfig(filePath string) (*Filter, error) {
 		case "D":
 			rule = Direct
 		default:
-			return nil, errors.E(op, "Invalid configuration found in filter file at the line "+strconv.Itoa(idx+1))
+			return nil, apierrors.E(op, "Invalid configuration found in filter file at the line "+strconv.Itoa(idx+1))
 		}
 		// is root config
 		if len(split) == 1 {
@@ -294,11 +294,11 @@ func newRule(r FilterRule) ruleNode {
 }
 
 func getConfigLines(filterFile string) ([]string, error) {
-	const op errors.Op = "module.getConfigLines"
+	const op apierrors.Op = "module.getConfigLines"
 
 	f, err := os.Open(filepath.Clean(filterFile))
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	scanner := bufio.NewScanner(f)

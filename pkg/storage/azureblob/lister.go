@@ -4,21 +4,21 @@ import (
 	"context"
 	"strings"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 )
 
 // List implements the (./pkg/storage).Lister interface.
 // It returns a list of versions, if any, for a given module.
 func (s *Storage) List(ctx context.Context, module string) ([]string, error) {
-	const op errors.Op = "azureblob.List"
+	const op apierrors.Op = "azureblob.List"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 
 	modulePrefix := strings.TrimSuffix(module, "/") + "/@v"
 	blobnames, err := s.client.ListBlobs(ctx, modulePrefix)
 	if err != nil {
-		return nil, errors.E(op, err, errors.M(module))
+		return nil, apierrors.E(op, err, apierrors.M(module))
 	}
 	return extractVersions(blobnames), nil
 }

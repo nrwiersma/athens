@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gomods/athens/pkg/download/mode"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/log"
 )
 
@@ -13,33 +13,33 @@ const PathVersionModule = "/{module:.+}/@v/{version}.mod"
 
 // ModuleHandler implements GET baseURL/module/@v/version.mod.
 func ModuleHandler(dp Protocol, lggr log.Entry, df *mode.DownloadFile) http.Handler {
-	const op errors.Op = "download.VersionModuleHandler"
+	const op apierrors.Op = "download.VersionModuleHandler"
 	f := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		mod, ver, err := getModuleParams(r, op)
 		if err != nil {
-			err = errors.E(op, errors.M(mod), errors.V(ver), err)
+			err = apierrors.E(op, apierrors.M(mod), apierrors.V(ver), err)
 			lggr.SystemErr(err)
-			w.WriteHeader(errors.Kind(err))
+			w.WriteHeader(apierrors.Kind(err))
 			return
 		}
 		modBts, err := dp.GoMod(r.Context(), mod, ver)
 		if err != nil {
-			severityLevel := errors.Expect(err, errors.KindNotFound, errors.KindRedirect)
-			err = errors.E(op, err, severityLevel)
+			severityLevel := apierrors.Expect(err, apierrors.KindNotFound, apierrors.KindRedirect)
+			err = apierrors.E(op, err, severityLevel)
 			lggr.SystemErr(err)
-			if errors.Kind(err) == errors.KindRedirect {
+			if apierrors.Kind(err) == apierrors.KindRedirect {
 				url, err := getRedirectURL(df.URL(mod), r.URL.Path)
 				if err != nil {
-					err = errors.E(op, errors.M(mod), errors.V(ver), err)
+					err = apierrors.E(op, apierrors.M(mod), apierrors.V(ver), err)
 					lggr.SystemErr(err)
-					w.WriteHeader(errors.Kind(err))
+					w.WriteHeader(apierrors.Kind(err))
 					return
 				}
-				http.Redirect(w, r, url, errors.KindRedirect)
+				http.Redirect(w, r, url, apierrors.KindRedirect)
 				return
 			}
-			w.WriteHeader(errors.Kind(err))
+			w.WriteHeader(apierrors.Kind(err))
 			return
 		}
 

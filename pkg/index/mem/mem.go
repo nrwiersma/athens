@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/index"
 )
 
@@ -21,12 +21,12 @@ type indexer struct {
 }
 
 func (i *indexer) Index(_ context.Context, mod, ver string) error {
-	const op errors.Op = "mem.Index"
+	const op apierrors.Op = "mem.Index"
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	for _, l := range i.lines {
 		if l.Path == mod && l.Version == ver {
-			return errors.E(op, fmt.Sprintf("%s@%s already indexed", mod, ver), errors.KindAlreadyExists)
+			return apierrors.E(op, fmt.Sprintf("%s@%s already indexed", mod, ver), apierrors.KindAlreadyExists)
 		}
 	}
 	i.lines = append(i.lines, &index.Line{

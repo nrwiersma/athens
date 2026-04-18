@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/storage"
 	"github.com/gomods/athens/pkg/storage/mem"
 	"github.com/redis/go-redis/v9"
@@ -148,7 +148,7 @@ func Test_getRedisClientOptions(t *testing.T) {
 		{
 			endpoint: "rediss://username:password@127.0.0.1:6379",
 			password: "1234", // Mismatched: URL has "password", config has "1234"
-			err:      errors.E("stash.WithRedisLock", errPasswordsDoNotMatch),
+			err:      apierrors.E("stash.WithRedisLock", errPasswordsDoNotMatch),
 		},
 		{
 			// TLS endpoint with no embedded password + separate password:

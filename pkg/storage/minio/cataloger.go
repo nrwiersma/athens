@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 	"github.com/gomods/athens/pkg/paths"
 	"github.com/minio/minio-go/v6"
@@ -14,7 +14,7 @@ import (
 // Catalog implements the (./pkg/storage).Cataloger interface.
 // It returns a list of modules and versions contained in the storage.
 func (s *storageImpl) Catalog(ctx context.Context, token string, pageSize int) ([]paths.AllPathParams, string, error) {
-	const op errors.Op = "minio.Catalog"
+	const op apierrors.Op = "minio.Catalog"
 	_, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	res := make([]paths.AllPathParams, 0)
@@ -22,7 +22,7 @@ func (s *storageImpl) Catalog(ctx context.Context, token string, pageSize int) (
 	for count > 0 {
 		loo, err := s.minioCore.ListObjectsV2(s.bucketName, "", token, false, "", 0, "")
 		if err != nil {
-			return nil, "", errors.E(op, err)
+			return nil, "", apierrors.E(op, err)
 		}
 
 		m, lastKey := fetchModsAndVersions(loo.Contents, count)
@@ -67,12 +67,12 @@ func fetchModsAndVersions(objects []minio.ObjectInfo, elementsNum int) ([]paths.
 }
 
 func parseMinioKey(o minio.ObjectInfo) (paths.AllPathParams, error) {
-	const op errors.Op = "minio.parseMinioKey"
+	const op apierrors.Op = "minio.parseMinioKey"
 
 	_, m, v := extractKey(o.Key)
 
 	if m == "" || v == "" {
-		return paths.AllPathParams{}, errors.E(op, fmt.Errorf("invalid object key format %s", o.Key))
+		return paths.AllPathParams{}, apierrors.E(op, fmt.Errorf("invalid object key format %s", o.Key))
 	}
 
 	return paths.AllPathParams{Module: m, Version: v}, nil

@@ -8,7 +8,7 @@ import (
 	"contrib.go.opencensus.io/exporter/prometheus"
 	"contrib.go.opencensus.io/exporter/stackdriver"
 	datadog "github.com/DataDog/opencensus-go-exporter-datadog"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gorilla/mux"
 	"go.opencensus.io/plugin/ochttp"
 	"go.opencensus.io/stats/view"
@@ -17,29 +17,29 @@ import (
 // RegisterStatsExporter determines the type of StatsExporter service for exporting stats from Opencensus
 // Currently it supports: prometheus.
 func RegisterStatsExporter(r *mux.Router, statsExporter, service string) (func(), error) {
-	const op errors.Op = "observ.RegisterStatsExporter"
+	const op apierrors.Op = "observ.RegisterStatsExporter"
 	stop := func() {}
 	var err error
 	switch statsExporter {
 	case "prometheus":
 		if err := registerPrometheusExporter(r, service); err != nil {
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 	case "stackdriver":
 		if stop, err = registerStatsStackDriverExporter(service); err != nil {
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 	case "datadog":
 		if stop, err = registerStatsDataDogExporter(service); err != nil {
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 	case "":
-		return nil, errors.E(op, "StatsExporter not specified. Stats won't be collected")
+		return nil, apierrors.E(op, "StatsExporter not specified. Stats won't be collected")
 	default:
-		return nil, errors.E(op, fmt.Sprintf("StatsExporter %s not supported. Please open PR or an issue at github.com/gomods/athens", statsExporter))
+		return nil, apierrors.E(op, fmt.Sprintf("StatsExporter %s not supported. Please open PR or an issue at github.com/gomods/athens", statsExporter))
 	}
 	if err = registerViews(); err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	return stop, nil
@@ -47,12 +47,12 @@ func RegisterStatsExporter(r *mux.Router, statsExporter, service string) (func()
 
 // registerPrometheusExporter creates exporter that collects stats for Prometheus.
 func registerPrometheusExporter(r *mux.Router, service string) error {
-	const op errors.Op = "observ.registerPrometheusExporter"
+	const op apierrors.Op = "observ.registerPrometheusExporter"
 	prom, err := prometheus.NewExporter(prometheus.Options{
 		Namespace: service,
 	})
 	if err != nil {
-		return errors.E(op, err)
+		return apierrors.E(op, err)
 	}
 
 	r.Handle("/metrics", prom).Methods(http.MethodGet)
@@ -63,27 +63,27 @@ func registerPrometheusExporter(r *mux.Router, service string) error {
 }
 
 func registerStatsDataDogExporter(service string) (func(), error) {
-	const op errors.Op = "observ.registerStatsDataDogExporter"
+	const op apierrors.Op = "observ.registerStatsDataDogExporter"
 
 	dd, err := datadog.NewExporter(datadog.Options{Service: service})
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	if dd == nil {
-		return nil, errors.E(op, "Failed to initialize data dog exporter")
+		return nil, apierrors.E(op, "Failed to initialize data dog exporter")
 	}
 	view.RegisterExporter(dd)
 	return dd.Stop, nil
 }
 
 func registerStatsStackDriverExporter(projectID string) (func(), error) {
-	const op errors.Op = "observ.registerStatsStackDriverExporter"
+	const op apierrors.Op = "observ.registerStatsStackDriverExporter"
 
 	sd, err := stackdriver.NewExporter(stackdriver.Options{
 		ProjectID: projectID,
 	})
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	view.RegisterExporter(sd)
@@ -94,7 +94,7 @@ func registerStatsStackDriverExporter(projectID string) (func(), error) {
 
 // registerViews register stats which should be collected in Athens.
 func registerViews() error {
-	const op errors.Op = "observ.registerViews"
+	const op apierrors.Op = "observ.registerViews"
 
 	//nolint:prealloc
 	views := []*view.View{
@@ -112,7 +112,7 @@ func registerViews() error {
 	views = append(views, customViews()...)
 
 	if err := view.Register(views...); err != nil {
-		return errors.E(op, err)
+		return apierrors.E(op, err)
 	}
 
 	return nil

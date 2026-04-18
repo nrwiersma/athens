@@ -10,17 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Error functions from stdlib.
-var (
-	Is   = errors.Is
-	Join = errors.Join
-)
-
-// AsType is a mirror of Go's `errors.AsType`.
-func AsType[E error](target error) (E, bool) {
-	return errors.AsType[E](target)
-}
-
 // Kind enums.
 const (
 	KindNotFound       = http.StatusNotFound

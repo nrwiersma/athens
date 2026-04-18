@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"unicode/utf8"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 )
 
 // DecodePath returns the module path of the given safe encoding.
 // It fails if the encoding is invalid or encodes an invalid path.
 func DecodePath(encoding string) (path string, err error) {
-	const op errors.Op = "paths.DecodePath"
+	const op apierrors.Op = "paths.DecodePath"
 	path, ok := decodeString(encoding)
 	if !ok {
-		return "", errors.E(op, fmt.Sprintf("invalid module path encoding %q", encoding))
+		return "", apierrors.E(op, fmt.Sprintf("invalid module path encoding %q", encoding))
 	}
 
 	return path, nil

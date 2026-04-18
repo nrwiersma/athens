@@ -7,7 +7,7 @@ import (
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 	"github.com/gomods/athens/pkg/paths"
 )
@@ -15,7 +15,7 @@ import (
 // Catalog implements the (./pkg/storage).Catalog interface.
 // It returns a list of versions, if any, for a given module.
 func (s *Storage) Catalog(ctx context.Context, token string, pageSize int) ([]paths.AllPathParams, string, error) {
-	const op errors.Op = "azblob.Catalog"
+	const op apierrors.Op = "azblob.Catalog"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 
@@ -31,7 +31,7 @@ func (s *Storage) Catalog(ctx context.Context, token string, pageSize int) ([]pa
 		MaxResults: int32(objCount),
 	})
 	if err != nil {
-		return nil, "", errors.E(op, err)
+		return nil, "", apierrors.E(op, err)
 	}
 
 	nextToken := *blobs.NextMarker.Val
@@ -50,12 +50,12 @@ func (s *Storage) Catalog(ctx context.Context, token string, pageSize int) ([]pa
 }
 
 func parsModVer(p string) (paths.AllPathParams, error) {
-	const op errors.Op = "azureblob.parseS3Key"
+	const op apierrors.Op = "azureblob.parseS3Key"
 	// github.com/gomods/testCatalogModule/@v/v1.2.0976.info
 	m, v := config.ModuleVersionFromPath(p)
 
 	if m == "" || v == "" {
-		return paths.AllPathParams{}, errors.E(op, fmt.Errorf("invalid object key format %s", p))
+		return paths.AllPathParams{}, apierrors.E(op, fmt.Errorf("invalid object key format %s", p))
 	}
 	return paths.AllPathParams{Module: m, Version: v}, nil
 }

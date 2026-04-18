@@ -2,12 +2,12 @@ package stash
 
 import (
 	"context"
-	goerrors "errors"
+	"errors"
 	"time"
 
 	"github.com/bsm/redislock"
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 	"github.com/gomods/athens/pkg/storage"
 	"github.com/redis/go-redis/v9"
@@ -18,7 +18,7 @@ type RedisLogger interface {
 	Printf(ctx context.Context, format string, v ...any)
 }
 
-var errPasswordsDoNotMatch = goerrors.New("a redis url was parsed that contained a password but the configuration also defined a specific redis password, please ensure these values match or use only one of them")
+var errPasswordsDoNotMatch = errors.New("a redis url was parsed that contained a password but the configuration also defined a specific redis password, please ensure these values match or use only one of them")
 
 // getRedisClientOptions takes an endpoint and password and returns *redis.Options to use
 // with the redis client. endpoint may be a redis url or host:port combination. If a redis
@@ -60,21 +60,21 @@ func getRedisClientOptions(endpoint, password string) (*redis.Options, error) {
 func WithRedisLock(l RedisLogger, endpoint, password string, checker storage.Checker, lockConfig *config.RedisLockConfig) (Wrapper, error) {
 	redis.SetLogger(l)
 
-	const op errors.Op = "stash.WithRedisLock"
+	const op apierrors.Op = "stash.WithRedisLock"
 
 	options, err := getRedisClientOptions(endpoint, password)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	client := redis.NewClient(options)
 	if _, err := client.Ping(context.Background()).Result(); err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	lockOptions, err := lockOptionsFromConfig(lockConfig)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	return func(s Stasher) Stasher {
@@ -84,7 +84,7 @@ func WithRedisLock(l RedisLogger, endpoint, password string, checker storage.Che
 
 func lockOptionsFromConfig(lockConfig *config.RedisLockConfig) (redisLockOptions, error) {
 	if lockConfig.TTL <= 0 || lockConfig.Timeout <= 0 || lockConfig.MaxRetries <= 0 {
-		return redisLockOptions{}, goerrors.New("invalid lock options")
+		return redisLockOptions{}, errors.New("invalid lock options")
 	}
 	return redisLockOptions{
 		ttl:        time.Duration(lockConfig.TTL) * time.Second,
@@ -107,7 +107,7 @@ type redisLock struct {
 }
 
 func (s *redisLock) Stash(ctx context.Context, mod, ver string) (newVer string, err error) {
-	const op errors.Op = "redis.Stash"
+	const op apierrors.Op = "redis.Stash"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	mv := config.FmtModVer(mod, ver)
@@ -119,25 +119,25 @@ func (s *redisLock) Stash(ctx context.Context, mod, ver string) (newVer string, 
 		RetryStrategy: redislock.LimitRetry(redislock.LinearBackoff(time.Second), s.options.maxRetries),
 	})
 	if err != nil {
-		return ver, errors.E(op, err)
+		return ver, apierrors.E(op, err)
 	}
 	defer func() {
-		const op errors.Op = "redis.Release"
+		const op apierrors.Op = "redis.Release"
 		lockErr := lock.Release(ctx)
 		if err == nil && lockErr != nil {
-			err = errors.E(op, lockErr)
+			err = apierrors.E(op, lockErr)
 		}
 	}()
 	ok, err := s.checker.Exists(ctx, mod, ver)
 	if err != nil {
-		return ver, errors.E(op, err)
+		return ver, apierrors.E(op, err)
 	}
 	if ok {
 		return ver, nil
 	}
 	newVer, err = s.stasher.Stash(ctx, mod, ver)
 	if err != nil {
-		return ver, errors.E(op, err)
+		return ver, apierrors.E(op, err)
 	}
 	return newVer, nil
 }

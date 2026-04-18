@@ -1,7 +1,9 @@
 package log
 
 import (
-	"github.com/gomods/athens/pkg/errors"
+	"errors"
+
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -35,14 +37,14 @@ func (e *entry) WithFields(fields map[string]any) Entry {
 }
 
 func (e *entry) SystemErr(err error) {
-	aErr, ok := errors.AsType[errors.Error](err)
+	aErr, ok := errors.AsType[apierrors.Error](err)
 	if !ok {
 		e.Error(err)
 		return
 	}
 
 	ent := e.WithFields(errFields(aErr))
-	switch errors.Severity(err) {
+	switch apierrors.Severity(err) {
 	case logrus.WarnLevel:
 		ent.Warnf("%v", err)
 	case logrus.InfoLevel:
@@ -54,13 +56,13 @@ func (e *entry) SystemErr(err error) {
 	}
 }
 
-func errFields(err errors.Error) logrus.Fields {
+func errFields(err apierrors.Error) logrus.Fields {
 	f := logrus.Fields{}
 	f["operation"] = err.Op
-	f["kind"] = errors.KindText(err)
+	f["kind"] = apierrors.KindText(err)
 	f["module"] = err.Module
 	f["version"] = err.Version
-	f["ops"] = errors.Ops(err)
+	f["ops"] = apierrors.Ops(err)
 
 	return f
 }

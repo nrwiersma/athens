@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/log"
 	"github.com/gomods/athens/pkg/paths"
 	"github.com/gorilla/mux"
@@ -67,22 +67,22 @@ type validationResponse struct {
 }
 
 func validate(ctx context.Context, client *http.Client, hook, mod, ver string) (validationResponse, error) {
-	const op errors.Op = "actions.validate"
+	const op apierrors.Op = "actions.validate"
 
 	toVal := &validationParams{mod, ver}
 	jsonVal, err := json.Marshal(toVal)
 	if err != nil {
-		return validationResponse{Valid: false}, errors.E(op, err)
+		return validationResponse{Valid: false}, apierrors.E(op, err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, hook, bytes.NewReader(jsonVal))
 	if err != nil {
-		return validationResponse{}, errors.E(op, err)
+		return validationResponse{}, apierrors.E(op, err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
-		return validationResponse{Valid: false}, errors.E(op, err)
+		return validationResponse{Valid: false}, apierrors.E(op, err)
 	}
 	defer func() {
 		_, _ = io.Copy(io.Discard, resp.Body)
@@ -95,7 +95,7 @@ func validate(ctx context.Context, client *http.Client, hook, mod, ver string) (
 	case http.StatusForbidden:
 		return validationResponseFromRequest(resp), nil
 	default:
-		return validationResponse{Valid: false}, errors.E(op, "Unexpected status code ", resp.StatusCode)
+		return validationResponse{Valid: false}, apierrors.E(op, "Unexpected status code ", resp.StatusCode)
 	}
 }
 

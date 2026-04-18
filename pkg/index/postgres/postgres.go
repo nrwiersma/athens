@@ -3,12 +3,13 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/index"
 	"github.com/lib/pq"
 )
@@ -58,7 +59,7 @@ type indexer struct {
 }
 
 func (i *indexer) Index(ctx context.Context, mod, ver string) error {
-	const op errors.Op = "postgres.Index"
+	const op apierrors.Op = "postgres.Index"
 	_, err := i.db.ExecContext(
 		ctx,
 		`INSERT INTO indexes (path, version, timestamp) VALUES ($1, $2, $3)`,
@@ -67,20 +68,20 @@ func (i *indexer) Index(ctx context.Context, mod, ver string) error {
 		time.Now().Format(time.RFC3339Nano),
 	)
 	if err != nil {
-		return errors.E(op, err, getKind(err))
+		return apierrors.E(op, err, getKind(err))
 	}
 	return nil
 }
 
 func (i *indexer) Lines(ctx context.Context, since time.Time, limit int) ([]*index.Line, error) {
-	const op errors.Op = "postgres.Lines"
+	const op apierrors.Op = "postgres.Lines"
 	if since.IsZero() {
 		since = time.Unix(0, 0)
 	}
 	sinceStr := since.Format(time.RFC3339Nano)
 	rows, err := i.db.QueryContext(ctx, `SELECT path, version, timestamp FROM indexes WHERE timestamp >= $1 LIMIT $2`, sinceStr, limit)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	defer func() { _ = rows.Close() }()
 	var lines []*index.Line
@@ -88,7 +89,7 @@ func (i *indexer) Lines(ctx context.Context, since time.Time, limit int) ([]*ind
 		var line index.Line
 		err = rows.Scan(&line.Path, &line.Version, &line.Timestamp)
 		if err != nil {
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 		lines = append(lines, &line)
 	}
@@ -111,12 +112,12 @@ func getPostgresSource(cfg *config.PostgresIndex) string {
 func getKind(err error) int {
 	pqerr, ok := errors.AsType[*pq.Error](err)
 	if !ok {
-		return errors.KindUnexpected
+		return apierrors.KindUnexpected
 	}
 	switch pqerr.Code {
 	case "23505":
-		return errors.KindAlreadyExists
+		return apierrors.KindAlreadyExists
 	default:
-		return errors.KindUnexpected
+		return apierrors.KindUnexpected
 	}
 }

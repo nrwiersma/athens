@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 	"github.com/gomods/athens/pkg/storage"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -13,16 +13,16 @@ import (
 
 // Save stores a module in mongo storage.
 func (s *ModuleStore) Save(ctx context.Context, module, version string, mod []byte, zip io.Reader, zipMD5, info []byte) error {
-	const op errors.Op = "mongo.Save"
+	const op apierrors.Op = "mongo.Save"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 
 	exists, err := s.Exists(ctx, module, version)
 	if err != nil {
-		return errors.E(op, err, errors.M(module), errors.V(version))
+		return apierrors.E(op, err, apierrors.M(module), apierrors.V(version))
 	}
 	if exists {
-		return errors.E(op, "already exists", errors.M(module), errors.V(version), errors.KindAlreadyExists)
+		return apierrors.E(op, "already exists", apierrors.M(module), apierrors.V(version), apierrors.KindAlreadyExists)
 	}
 
 	zipName := s.gridFileName(module, version)
@@ -31,17 +31,17 @@ func (s *ModuleStore) Save(ctx context.Context, module, version string, mod []by
 
 	uStream, err := bucket.OpenUploadStream(ctx, zipName, options.GridFSUpload())
 	if err != nil {
-		return errors.E(op, err, errors.M(module), errors.V(version))
+		return apierrors.E(op, err, apierrors.M(module), apierrors.V(version))
 	}
 	defer func() { _ = uStream.Close() }()
 
 	numBytesWritten, err := io.Copy(uStream, zip)
 	if err != nil {
-		return errors.E(op, err, errors.M(module), errors.V(version))
+		return apierrors.E(op, err, apierrors.M(module), apierrors.V(version))
 	}
 	if numBytesWritten <= 0 {
 		e := fmt.Errorf("copied %d bytes to Mongo GridFS", numBytesWritten)
-		return errors.E(op, e, errors.M(module), errors.V(version))
+		return apierrors.E(op, e, apierrors.M(module), apierrors.V(version))
 	}
 
 	m := &storage.Module{
@@ -57,7 +57,7 @@ func (s *ModuleStore) Save(ctx context.Context, module, version string, mod []by
 
 	_, err = c.InsertOne(tctx, m, options.InsertOne().SetBypassDocumentValidation(false))
 	if err != nil {
-		return errors.E(op, err, errors.M(module), errors.V(version))
+		return apierrors.E(op, err, apierrors.M(module), apierrors.V(version))
 	}
 
 	return nil

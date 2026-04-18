@@ -7,14 +7,14 @@ import (
 	"io"
 	"testing"
 
-	athenserr "github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/storage"
 	"github.com/gomods/athens/pkg/storage/mem"
 	"github.com/stretchr/testify/require"
 )
 
 const (
-	testOp      athenserr.Op = "vcsLister.List"
+	testOp      apierrors.Op = "vcsLister.List"
 	testModName              = "happy tags"
 )
 
@@ -78,7 +78,7 @@ var listMergeTests = []listMergeTest{
 		strVersions: []string{},
 		strErr:      nil,
 		expected:    nil,
-		expectedErr: athenserr.E(testOp, athenserr.M(testModName), athenserr.KindNotFound, errors.New("remote: Repository not found")),
+		expectedErr: apierrors.E(testOp, apierrors.M(testModName), apierrors.KindNotFound, errors.New("remote: Repository not found")),
 	},
 	{
 		name:        "unexpected go err",
@@ -88,7 +88,7 @@ var listMergeTests = []listMergeTest{
 		strVersions: []string{"1.1.1"},
 		strErr:      nil,
 		expected:    nil,
-		expectedErr: athenserr.E(testOp, errors.New("unexpected error")),
+		expectedErr: apierrors.E(testOp, errors.New("unexpected error")),
 	},
 	{
 		name:        "unexpected storage err",
@@ -98,7 +98,7 @@ var listMergeTests = []listMergeTest{
 		strVersions: nil,
 		strErr:      errors.New("unexpected error"),
 		expected:    nil,
-		expectedErr: athenserr.E(testOp, errors.New("unexpected error")),
+		expectedErr: apierrors.E(testOp, errors.New("unexpected error")),
 	},
 }
 
@@ -137,7 +137,7 @@ func TestListMerge(t *testing.T) {
 				t.Fatalf("expected err: %v, got: %v", tc.expectedErr, err)
 			}
 			if tc.expectedErr != nil {
-				require.Equal(t, athenserr.Kind(tc.expectedErr), athenserr.Kind(err))
+				require.Equal(t, apierrors.Kind(tc.expectedErr), apierrors.Kind(err))
 			}
 			require.ElementsMatch(t, tc.expected, list, "expected list: %v, got: %v", tc.expected, list)
 		})

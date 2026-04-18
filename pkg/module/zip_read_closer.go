@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/spf13/afero"
 )
 
@@ -28,7 +28,7 @@ func (rc *zipReadCloser) Read(p []byte) (n int, err error) {
 // clearFiles deletes all data from the given fs at path root.
 // This function must be called when zip is closed to cleanup the entire GOPATH created by the diskref.
 func clearFiles(fs afero.Fs, root string) error {
-	const op errors.Op = "module.ClearFiles"
+	const op apierrors.Op = "module.ClearFiles"
 	// This is required because vgo ensures dependencies are read-only
 	// See https://github.com/golang/go/issues/24111 and
 	// https://go-review.googlesource.com/c/vgo/+/96978
@@ -40,11 +40,11 @@ func clearFiles(fs afero.Fs, root string) error {
 	}
 	err := afero.Walk(fs, root, walkFn)
 	if err != nil {
-		return errors.E(op, err)
+		return apierrors.E(op, err)
 	}
 	err = fs.RemoveAll(root)
 	if err != nil {
-		return errors.E(op, err)
+		return apierrors.E(op, err)
 	}
 	return nil
 }

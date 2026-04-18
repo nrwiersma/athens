@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/index"
 	"github.com/gomods/athens/pkg/log"
 	"github.com/sirupsen/logrus"
@@ -20,7 +20,7 @@ func indexHandler(index index.Indexer) http.HandlerFunc {
 		list, err := getIndexLines(r, index)
 		if err != nil {
 			log.EntryFromContext(ctx).SystemErr(err)
-			http.Error(w, err.Error(), errors.Kind(err))
+			http.Error(w, err.Error(), apierrors.Kind(err))
 			return
 		}
 
@@ -37,7 +37,7 @@ func indexHandler(index index.Indexer) http.HandlerFunc {
 }
 
 func getIndexLines(r *http.Request, index index.Indexer) ([]*index.Line, error) {
-	const op errors.Op = "actions.IndexHandler"
+	const op apierrors.Op = "actions.IndexHandler"
 	var (
 		err   error
 		limit = 2000
@@ -46,18 +46,18 @@ func getIndexLines(r *http.Request, index index.Indexer) ([]*index.Line, error) 
 	if limitStr := r.FormValue("limit"); limitStr != "" {
 		limit, err = strconv.Atoi(limitStr)
 		if err != nil || limit <= 0 {
-			return nil, errors.E(op, err, errors.KindBadRequest, logrus.InfoLevel)
+			return nil, apierrors.E(op, err, apierrors.KindBadRequest, logrus.InfoLevel)
 		}
 	}
 	if sinceStr := r.FormValue("since"); sinceStr != "" {
 		since, err = time.Parse(time.RFC3339, sinceStr)
 		if err != nil {
-			return nil, errors.E(op, err, errors.KindBadRequest, logrus.InfoLevel)
+			return nil, apierrors.E(op, err, apierrors.KindBadRequest, logrus.InfoLevel)
 		}
 	}
 	list, err := index.Lines(r.Context(), since, limit)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	return list, nil
 }

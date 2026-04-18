@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/gomods/athens/pkg/download"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/storage"
 )
 
@@ -47,7 +47,7 @@ func (p *withpool) listen() {
 }
 
 func (p *withpool) List(ctx context.Context, mod string) ([]string, error) {
-	const op errors.Op = "pool.List"
+	const op apierrors.Op = "pool.List"
 	var vers []string
 	var err error
 	done := make(chan struct{}, 1)
@@ -57,14 +57,14 @@ func (p *withpool) List(ctx context.Context, mod string) ([]string, error) {
 	}
 	<-done
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	return vers, nil
 }
 
 func (p *withpool) Info(ctx context.Context, mod, ver string) ([]byte, error) {
-	const op errors.Op = "pool.Info"
+	const op apierrors.Op = "pool.Info"
 	var info []byte
 	var err error
 	done := make(chan struct{}, 1)
@@ -74,13 +74,13 @@ func (p *withpool) Info(ctx context.Context, mod, ver string) ([]byte, error) {
 	}
 	<-done
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	return info, nil
 }
 
 func (p *withpool) Latest(ctx context.Context, mod string) (*storage.RevInfo, error) {
-	const op errors.Op = "pool.Latest"
+	const op apierrors.Op = "pool.Latest"
 	var info *storage.RevInfo
 	var err error
 	done := make(chan struct{}, 1)
@@ -90,13 +90,13 @@ func (p *withpool) Latest(ctx context.Context, mod string) (*storage.RevInfo, er
 	}
 	<-done
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	return info, nil
 }
 
 func (p *withpool) GoMod(ctx context.Context, mod, ver string) ([]byte, error) {
-	const op errors.Op = "pool.GoMod"
+	const op apierrors.Op = "pool.GoMod"
 	var goMod []byte
 	var err error
 	done := make(chan struct{}, 1)
@@ -106,13 +106,13 @@ func (p *withpool) GoMod(ctx context.Context, mod, ver string) ([]byte, error) {
 	}
 	<-done
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	return goMod, nil
 }
 
 func (p *withpool) Zip(ctx context.Context, mod, ver string) (storage.SizeReadCloser, error) {
-	const op errors.Op = "pool.Zip"
+	const op apierrors.Op = "pool.Zip"
 	var zip storage.SizeReadCloser
 	var err error
 	done := make(chan struct{}, 1)
@@ -122,7 +122,7 @@ func (p *withpool) Zip(ctx context.Context, mod, ver string) (storage.SizeReadCl
 	}
 	<-done
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	return zip, nil
 }

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -11,7 +12,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/go-playground/validator/v10"
 	"github.com/gomods/athens/pkg/download/mode"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -130,11 +131,11 @@ func (el *EnvList) Decode(value string) error {
 // Validate validates that all strings inside the
 // list are of the key=value format.
 func (el EnvList) Validate() error {
-	const op errors.Op = "EnvList.Validate"
+	const op apierrors.Op = "EnvList.Validate"
 	for _, env := range el {
 		// some strings can have multiple "=", such as GODEBUG=netdns=cgo
 		if strings.Count(env, "=") < 1 {
-			return errors.E(op, fmt.Errorf("incorrect env format: %v", env))
+			return apierrors.E(op, fmt.Errorf("incorrect env format: %v", env))
 		}
 	}
 	return nil
@@ -292,7 +293,7 @@ func checkFilePerms(files ...string) error {
 		// This check can be removed once that has been fixed
 		fInfo, err := os.Stat(f)
 		if err != nil {
-			errs = errors.Join(errs, errors.E(op, fmt.Errorf("checking file %q: %w", f, err)))
+			errs = errors.Join(errs, apierrors.E(op, fmt.Errorf("checking file %q: %w", f, err)))
 			continue
 		}
 
@@ -300,7 +301,7 @@ func checkFilePerms(files ...string) error {
 		// the bit mask is calculated using the umask command which tells which permissions
 		// should not be allowed for a particular user, group or world
 		if fInfo.Mode()&0o033 != 0 && runtime.GOOS != "windows" {
-			errs = errors.Join(errs, errors.E(op, f+" should have at most rwx,-, - (bit mask 077) as permission"))
+			errs = errors.Join(errs, apierrors.E(op, f+" should have at most rwx,-, - (bit mask 077) as permission"))
 		}
 	}
 	return errs

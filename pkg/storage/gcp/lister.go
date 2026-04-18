@@ -2,10 +2,11 @@ package gcp
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"cloud.google.com/go/storage"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 	"google.golang.org/api/iterator"
 )
@@ -13,7 +14,7 @@ import (
 // List implements the (./pkg/storage).Lister interface.
 // It returns a list of versions, if any, for a given module.
 func (s *Storage) List(ctx context.Context, module string) ([]string, error) {
-	const op errors.Op = "gcp.List"
+	const op apierrors.Op = "gcp.List"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 
@@ -26,7 +27,7 @@ func (s *Storage) List(ctx context.Context, module string) ([]string, error) {
 			break
 		}
 		if err != nil {
-			return nil, errors.E(op, err, errors.M(module))
+			return nil, apierrors.E(op, err, apierrors.M(module))
 		}
 		paths = append(paths, attrs.Name)
 	}

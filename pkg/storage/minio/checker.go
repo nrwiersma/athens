@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 )
 
 func (s *storageImpl) Exists(ctx context.Context, module, version string) (bool, error) {
-	const op errors.Op = "minio.Exists"
+	const op apierrors.Op = "minio.Exists"
 	_, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	versionedPath := s.versionLocation(module, version)
@@ -20,11 +20,11 @@ func (s *storageImpl) Exists(ctx context.Context, module, version string) (bool,
 	var count int
 	objectCh, err := s.minioCore.ListObjectsV2(s.bucketName, versionedPath, "", false, "", 0, "")
 	if err != nil {
-		return false, errors.E(op, err, errors.M(module), errors.V(version))
+		return false, apierrors.E(op, err, apierrors.M(module), apierrors.V(version))
 	}
 	for _, object := range objectCh.Contents {
 		if object.Err != nil {
-			return false, errors.E(op, object.Err, errors.M(module), errors.V(version))
+			return false, apierrors.E(op, object.Err, apierrors.M(module), apierrors.V(version))
 		}
 
 		switch object.Key {

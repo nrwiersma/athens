@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/storage"
 	"github.com/spf13/afero"
 )
@@ -27,13 +27,13 @@ func (s *storageImpl) versionLocation(module, version string) string {
 // everything under rootDir.
 // If the root directory does not exist an error is returned.
 func NewStorage(rootDir string, filesystem afero.Fs) (storage.Backend, error) {
-	const op errors.Op = "fs.NewStorage"
+	const op apierrors.Op = "fs.NewStorage"
 	exists, err := afero.Exists(filesystem, rootDir)
 	if err != nil {
-		return nil, errors.E(op, fmt.Errorf("could not check if root directory `%s` exists: %w", rootDir, err))
+		return nil, apierrors.E(op, fmt.Errorf("could not check if root directory `%s` exists: %w", rootDir, err))
 	}
 	if !exists {
-		return nil, errors.E(op, fmt.Errorf("root directory `%s` does not exist", rootDir))
+		return nil, apierrors.E(op, fmt.Errorf("root directory `%s` does not exist", rootDir))
 	}
 	return &storageImpl{rootDir: rootDir, filesystem: filesystem}, nil
 }

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -30,14 +30,14 @@ type ModuleStore struct {
 // NewStorage returns a connected Mongo backed storage
 // that satisfies the Backend interface.
 func NewStorage(conf *config.MongoStorage, timeout time.Duration) (*ModuleStore, error) {
-	const op errors.Op = "mongo.NewStorage"
+	const op apierrors.Op = "mongo.NewStorage"
 	if conf == nil {
-		return nil, errors.E(op, "No Mongo Configuration provided")
+		return nil, apierrors.E(op, "No Mongo Configuration provided")
 	}
 	ms := &ModuleStore{url: conf.URL, certPath: conf.CertPath, timeout: timeout, insecure: conf.InsecureConn}
 	client, err := ms.newClient()
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	ms.client = client
@@ -72,7 +72,7 @@ func (s *ModuleStore) initDatabase() *mongo.Collection {
 }
 
 func (s *ModuleStore) newClient() (*mongo.Client, error) {
-	const op errors.Op = "mongo.newClient"
+	const op apierrors.Op = "mongo.newClient"
 
 	tlsConfig := &tls.Config{}
 	clientOptions := options.Client()
@@ -80,7 +80,7 @@ func (s *ModuleStore) newClient() (*mongo.Client, error) {
 
 	err := clientOptions.Validate()
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	if s.certPath != "" {
@@ -96,7 +96,7 @@ func (s *ModuleStore) newClient() (*mongo.Client, error) {
 
 		cert, err := os.ReadFile(s.certPath)
 		if err != nil {
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 
 		if ok := roots.AppendCertsFromPEM(cert); !ok {
@@ -109,7 +109,7 @@ func (s *ModuleStore) newClient() (*mongo.Client, error) {
 	clientOptions = clientOptions.SetConnectTimeout(s.timeout)
 	client, err := mongo.Connect(clientOptions)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	return client, nil

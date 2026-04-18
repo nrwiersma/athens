@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 	"time"
 
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 	"github.com/gomods/athens/pkg/storage"
 	"github.com/spf13/afero"
@@ -48,13 +49,13 @@ type listSFResp struct {
 }
 
 func (l *vcsLister) List(ctx context.Context, module string) (*storage.RevInfo, []string, error) {
-	const op errors.Op = "vcsLister.List"
+	const op apierrors.Op = "vcsLister.List"
 	_, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	sfResp, err, _ := l.sfg.Do(module, func() (any, error) {
 		tmpDir, err := afero.TempDir(l.fs, "", "go-list")
 		if err != nil {
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 		defer func() { _ = l.fs.RemoveAll(tmpDir) }()
 
@@ -75,7 +76,7 @@ func (l *vcsLister) List(ctx context.Context, module string) (*storage.RevInfo, 
 
 		gopath, err := afero.TempDir(l.fs, "", "athens")
 		if err != nil {
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 		defer func() { _ = clearFiles(l.fs, gopath) }()
 		cmd.Env = prepareEnv(gopath, l.env)
@@ -84,7 +85,7 @@ func (l *vcsLister) List(ctx context.Context, module string) (*storage.RevInfo, 
 		if err != nil && !isNoChildProcessesError(err) {
 			err = fmt.Errorf("%w: %s", err, stderr)
 			if errors.Is(timeoutCtx.Err(), context.DeadlineExceeded) {
-				return nil, errors.E(op, err, errors.KindGatewayTimeout)
+				return nil, apierrors.E(op, err, apierrors.KindGatewayTimeout)
 			}
 
 			// as of now, we can't recognize between a true NotFound
@@ -94,13 +95,13 @@ func (l *vcsLister) List(ctx context.Context, module string) (*storage.RevInfo, 
 			// what happened here if someone wants to dig in more.
 			// Once, https://github.com/golang/go/issues/30134 is
 			// resolved, we can hopefully differentiate.
-			return nil, errors.E(op, err, errors.KindNotFound)
+			return nil, apierrors.E(op, err, apierrors.KindNotFound)
 		}
 
 		var lr listResp
 		err = json.NewDecoder(stdout).Decode(&lr)
 		if err != nil {
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 		rev := storage.RevInfo{
 			Time:    lr.Time,

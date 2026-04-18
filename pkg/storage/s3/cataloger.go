@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 	"github.com/gomods/athens/pkg/paths"
 )
@@ -17,7 +17,7 @@ import (
 // Catalog implements the (./pkg/storage).Cataloger interface.
 // It returns a list of modules and versions contained in the storage.
 func (s *Storage) Catalog(ctx context.Context, token string, pageSize int) ([]paths.AllPathParams, string, error) {
-	const op errors.Op = "s3.Catalog"
+	const op apierrors.Op = "s3.Catalog"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	queryToken := token
@@ -31,7 +31,7 @@ func (s *Storage) Catalog(ctx context.Context, token string, pageSize int) ([]pa
 
 		loo, err := s.s3API.ListObjectsV2(ctx, lsParams)
 		if err != nil {
-			return nil, "", errors.E(op, err)
+			return nil, "", apierrors.E(op, err)
 		}
 
 		m, lastKey := fetchModsAndVersions(loo.Contents, count)
@@ -74,11 +74,11 @@ func fetchModsAndVersions(objects []types.Object, elementsNum int) ([]paths.AllP
 }
 
 func parseS3Key(o types.Object) (paths.AllPathParams, error) {
-	const op errors.Op = "s3.parseS3Key"
+	const op apierrors.Op = "s3.parseS3Key"
 	m, v := config.ModuleVersionFromPath(*o.Key)
 
 	if m == "" || v == "" {
-		return paths.AllPathParams{}, errors.E(op, fmt.Errorf("invalid object key format %s", *o.Key))
+		return paths.AllPathParams{}, apierrors.E(op, fmt.Errorf("invalid object key format %s", *o.Key))
 	}
 	return paths.AllPathParams{Module: m, Version: v}, nil
 }

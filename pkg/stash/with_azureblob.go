@@ -3,6 +3,7 @@ package stash
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -12,7 +13,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 	"github.com/gomods/athens/pkg/storage"
 	"github.com/gomods/athens/pkg/storage/azureblob"
@@ -22,20 +23,20 @@ import (
 // WithAzureBlobLock returns a distributed singleflight
 // using a Azure Blob Storage backend. See the config.toml documentation for details.
 func WithAzureBlobLock(conf *config.AzureBlobStorage, timeout time.Duration, checker storage.Checker) (Wrapper, error) {
-	const op errors.Op = "stash.WithAzureBlobLock"
+	const op apierrors.Op = "stash.WithAzureBlobLock"
 
 	if conf.AccountKey == "" && (conf.ManagedIdentityResourceID == "" || conf.CredentialScope == "") {
-		return nil, errors.E(op, "either account key or managed identity resource id and storage resource must be set")
+		return nil, apierrors.E(op, "either account key or managed identity resource id and storage resource must be set")
 	}
 	accountURL, err := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", conf.AccountName))
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	var cred azblob.Credential
 	if conf.AccountKey != "" {
 		cred, err = azblob.NewSharedKeyCredential(conf.AccountName, conf.AccountKey)
 		if err != nil {
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 	}
 	if conf.ManagedIdentityResourceID != "" {
@@ -43,11 +44,11 @@ func WithAzureBlobLock(conf *config.AzureBlobStorage, timeout time.Duration, che
 			ID: azidentity.ResourceID(conf.ManagedIdentityResourceID),
 		})
 		if err != nil {
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 		token, err := msiCred.GetToken(context.Background(), policy.TokenRequestOptions{Scopes: []string{conf.CredentialScope}})
 		if err != nil {
-			return nil, errors.E(op, err)
+			return nil, apierrors.E(op, err)
 		}
 		cred = azblob.NewTokenCredential(token.Token, func(tc azblob.TokenCredential) time.Duration {
 			fmt.Printf("refreshing token started at: %s", time.Now())
@@ -89,7 +90,7 @@ type stashRes struct {
 }
 
 func (s *azblobLock) Stash(ctx context.Context, mod, ver string) (newVer string, err error) {
-	const op errors.Op = "azblobLock.Stash"
+	const op apierrors.Op = "azblobLock.Stash"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 
@@ -101,18 +102,18 @@ func (s *azblobLock) Stash(ctx context.Context, mod, ver string) (newVer string,
 
 	leaseID, err := s.acquireLease(ctx, leaseBlobURL)
 	if err != nil {
-		return ver, errors.E(op, err)
+		return ver, apierrors.E(op, err)
 	}
 	defer func() {
-		const op errors.Op = "azblobLock.Unlock"
+		const op apierrors.Op = "azblobLock.Unlock"
 		relErr := s.releaseLease(ctx, leaseBlobURL, leaseID)
 		if err == nil && relErr != nil {
-			err = errors.E(op, relErr)
+			err = apierrors.E(op, relErr)
 		}
 	}()
 	ok, err := s.checker.Exists(ctx, mod, ver)
 	if err != nil {
-		return ver, errors.E(op, err)
+		return ver, apierrors.E(op, err)
 	}
 	if ok {
 		return ver, nil
@@ -127,7 +128,7 @@ func (s *azblobLock) Stash(ctx context.Context, mod, ver string) (newVer string,
 		select {
 		case sr := <-sChan:
 			if sr.err != nil {
-				err = errors.E(op, sr.err)
+				err = apierrors.E(op, sr.err)
 				return ver, err
 			}
 			newVer = sr.v
@@ -135,16 +136,16 @@ func (s *azblobLock) Stash(ctx context.Context, mod, ver string) (newVer string,
 		case <-time.After(10 * time.Second):
 			err := s.renewLease(ctx, leaseBlobURL, leaseID)
 			if err != nil {
-				return ver, errors.E(op, err)
+				return ver, apierrors.E(op, err)
 			}
 		case <-ctx.Done():
-			return ver, errors.E(op, ctx.Err())
+			return ver, apierrors.E(op, ctx.Err())
 		}
 	}
 }
 
 func (s *azblobLock) releaseLease(ctx context.Context, blobURL azblob.BlockBlobURL, leaseID string) error {
-	const op errors.Op = "azblobLock.releaseLease"
+	const op apierrors.Op = "azblobLock.releaseLease"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	_, err := blobURL.ReleaseLease(ctx, leaseID, azblob.ModifiedAccessConditions{})
@@ -152,7 +153,7 @@ func (s *azblobLock) releaseLease(ctx context.Context, blobURL azblob.BlockBlobU
 }
 
 func (s *azblobLock) renewLease(ctx context.Context, blobURL azblob.BlockBlobURL, leaseID string) error {
-	const op errors.Op = "azblobLock.renewLease"
+	const op apierrors.Op = "azblobLock.renewLease"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	_, err := blobURL.RenewLease(ctx, leaseID, azblob.ModifiedAccessConditions{})
@@ -160,7 +161,7 @@ func (s *azblobLock) renewLease(ctx context.Context, blobURL azblob.BlockBlobURL
 }
 
 func (s *azblobLock) acquireLease(ctx context.Context, blobURL azblob.BlockBlobURL) (string, error) {
-	const op errors.Op = "azblobLock.acquireLease"
+	const op apierrors.Op = "azblobLock.acquireLease"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	tctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
@@ -173,13 +174,13 @@ func (s *azblobLock) acquireLease(ctx context.Context, blobURL azblob.BlockBlobU
 	if err != nil {
 		// if the blob is already leased we will get http.StatusPreconditionFailed while writing to that blob
 		if stgErr, ok := errors.AsType[azblob.StorageError](err); !ok || stgErr.Response().StatusCode != http.StatusPreconditionFailed {
-			return "", errors.E(op, err)
+			return "", apierrors.E(op, err)
 		}
 	}
 
 	leaseID, err := uuid.NewRandom()
 	if err != nil {
-		return "", errors.E(op, err)
+		return "", apierrors.E(op, err)
 	}
 	for {
 		// acquire lease for 15 sec (it's the min value)
@@ -194,7 +195,7 @@ func (s *azblobLock) acquireLease(ctx context.Context, blobURL azblob.BlockBlobU
 					return "", tctx.Err()
 				}
 			}
-			return "", errors.E(op, err)
+			return "", apierrors.E(op, err)
 		}
 		return res.LeaseID(), nil
 	}

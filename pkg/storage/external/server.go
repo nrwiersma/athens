@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/gomods/athens/pkg/download"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/paths"
 	"github.com/gomods/athens/pkg/storage"
 	"github.com/gorilla/mux"
@@ -24,7 +24,7 @@ func NewServer(strg storage.Backend) http.Handler {
 		mod := mux.Vars(r)["module"]
 		list, err := strg.List(r.Context(), mod)
 		if err != nil {
-			http.Error(w, err.Error(), errors.Kind(err))
+			http.Error(w, err.Error(), apierrors.Kind(err))
 			return
 		}
 		_, _ = fmt.Fprintf(w, "%s", strings.Join(list, "\n"))
@@ -37,7 +37,7 @@ func NewServer(strg storage.Backend) http.Handler {
 		}
 		info, err := strg.Info(r.Context(), params.Module, params.Version)
 		if err != nil {
-			http.Error(w, err.Error(), errors.Kind(err))
+			http.Error(w, err.Error(), apierrors.Kind(err))
 			return
 		}
 		_, _ = w.Write(info)
@@ -50,7 +50,7 @@ func NewServer(strg storage.Backend) http.Handler {
 		}
 		mod, err := strg.GoMod(r.Context(), params.Module, params.Version)
 		if err != nil {
-			http.Error(w, err.Error(), errors.Kind(err))
+			http.Error(w, err.Error(), apierrors.Kind(err))
 			return
 		}
 		_, _ = w.Write(mod)
@@ -63,7 +63,7 @@ func NewServer(strg storage.Backend) http.Handler {
 		}
 		zip, err := strg.Zip(r.Context(), params.Module, params.Version)
 		if err != nil {
-			http.Error(w, err.Error(), errors.Kind(err))
+			http.Error(w, err.Error(), apierrors.Kind(err))
 			return
 		}
 		defer func() { _ = zip.Close() }()
@@ -125,7 +125,7 @@ func NewServer(strg storage.Backend) http.Handler {
 		}
 		err = strg.Delete(r.Context(), params.Module, params.Version)
 		if err != nil {
-			http.Error(w, err.Error(), errors.Kind(err))
+			http.Error(w, err.Error(), apierrors.Kind(err))
 			return
 		}
 	}).Methods(http.MethodDelete)

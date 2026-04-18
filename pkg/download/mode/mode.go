@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/paths"
 	"github.com/hashicorp/hcl2/gohcl"
 	"github.com/hashicorp/hcl2/hclparse"
@@ -52,10 +52,10 @@ type DownloadPath struct {
 // file:/path/to/file OR custom:<base64-encoded-hcl>
 // directly.
 func NewFile(m Mode, downloadURL string) (*DownloadFile, error) {
-	const op errors.Op = "downloadMode.NewFile"
+	const op apierrors.Op = "downloadMode.NewFile"
 
 	if m == "" {
-		return nil, errors.E(op, downloadModeErr)
+		return nil, apierrors.E(op, downloadModeErr)
 	}
 
 	if strings.HasPrefix(string(m), "file:") {
@@ -77,36 +77,36 @@ func NewFile(m Mode, downloadURL string) (*DownloadFile, error) {
 	case Sync, Async, Redirect, AsyncRedirect, None:
 		return &DownloadFile{Mode: m, DownloadURL: downloadURL}, nil
 	default:
-		return nil, errors.E(op, errors.KindBadRequest, fmt.Sprintf(invalidModeErr, m))
+		return nil, apierrors.E(op, apierrors.KindBadRequest, fmt.Sprintf(invalidModeErr, m))
 	}
 }
 
 // parseFile parses an HCL file according to the
 // DownloadMode spec.
 func parseFile(file []byte) (*DownloadFile, error) {
-	const op errors.Op = "downloadmode.parseFile"
+	const op apierrors.Op = "downloadmode.parseFile"
 	f, dig := hclparse.NewParser().ParseHCL(file, "config.hcl")
 	if dig.HasErrors() {
-		return nil, errors.E(op, dig.Error())
+		return nil, apierrors.E(op, dig.Error())
 	}
 	var df DownloadFile
 	dig = gohcl.DecodeBody(f.Body, nil, &df)
 	if dig.HasErrors() {
-		return nil, errors.E(op, dig.Error())
+		return nil, apierrors.E(op, dig.Error())
 	}
 	if err := df.validate(); err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	return &df, nil
 }
 
 func (d *DownloadFile) validate() error {
-	const op errors.Op = "downloadMode.validate"
+	const op apierrors.Op = "downloadMode.validate"
 	for _, p := range d.Paths {
 		switch p.Mode {
 		case Sync, Async, Redirect, AsyncRedirect, None:
 		default:
-			return errors.E(op, fmt.Errorf("unrecognized mode for %v: %v", p.Pattern, p.Mode))
+			return apierrors.E(op, fmt.Errorf("unrecognized mode for %v: %v", p.Pattern, p.Mode))
 		}
 	}
 	return nil

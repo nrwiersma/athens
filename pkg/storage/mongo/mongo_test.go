@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/storage"
 	"github.com/gomods/athens/pkg/storage/compliance"
 	"github.com/stretchr/testify/require"
@@ -97,7 +97,7 @@ func TestQueryKindNotFoundErrorCases(t *testing.T) {
 	for _, test := range testCases {
 		_, err := query(ctx, backend, test.modname, test.ver)
 		require.Error(t, err)
-		require.Equal(t, errors.KindNotFound, errors.Kind(err))
+		require.Equal(t, apierrors.KindNotFound, apierrors.Kind(err))
 	}
 }
 
@@ -141,7 +141,7 @@ func TestQueryKindUnexpectedErrorCases(t *testing.T) {
 	for _, test := range testCases {
 		_, err := query(t.Context(), mongoStorage, test.modName, test.version)
 		require.Error(t, err)
-		require.Equal(t, errors.KindUnexpected, errors.Kind(err))
+		require.Equal(t, apierrors.KindUnexpected, apierrors.Kind(err))
 	}
 }
 

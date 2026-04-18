@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/gomods/athens/pkg/config"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
 )
 
@@ -46,7 +46,7 @@ func (s *withsf) process(ctx context.Context, mod, ver string) {
 }
 
 func (s *withsf) Stash(ctx context.Context, mod, ver string) (string, error) {
-	const op errors.Op = "singleflight.Stash"
+	const op apierrors.Op = "singleflight.Stash"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 

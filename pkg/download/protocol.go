@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gomods/athens/pkg/download/mode"
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/log"
 	"github.com/gomods/athens/pkg/module"
 	"github.com/gomods/athens/pkg/observ"
@@ -81,7 +81,7 @@ type protocol struct {
 }
 
 func (p *protocol) List(ctx context.Context, mod string) ([]string, error) {
-	const op errors.Op = "protocol.List"
+	const op apierrors.Op = "protocol.List"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 
@@ -115,7 +115,7 @@ func (p *protocol) List(ctx context.Context, mod string) ([]string, error) {
 	// if we got an unexpected storage err then we can not guarantee that the end result contains all versions
 	// a tag or repo could have been deleted
 	if sErr != nil {
-		return nil, errors.E(op, sErr)
+		return nil, apierrors.E(op, sErr)
 	}
 
 	// if we're in offline mode, just return what came from storage.
@@ -127,7 +127,7 @@ func (p *protocol) List(ctx context.Context, mod string) ([]string, error) {
 	// otherwise we will get different results the next time because i.e. GH is up again
 	isUnexpGoErr := goErr != nil && !isRepoNotFoundError(goErr)
 	if isUnexpGoErr && p.networkMode == Strict {
-		return nil, errors.E(op, goErr)
+		return nil, apierrors.E(op, goErr)
 	}
 
 	// if we're in fallback mode, and VCS is down, just return what we have in storage,
@@ -141,7 +141,7 @@ func (p *protocol) List(ctx context.Context, mod string) ([]string, error) {
 	// if storage has no versions, and the repo was deleted/not-found, we know for sure
 	// there are no versions that Athens can serve, so just return an error.
 	if isRepoNotFoundErr && storageEmpty {
-		return nil, errors.E(op, errors.M(mod), errors.KindNotFound, goErr)
+		return nil, apierrors.E(op, apierrors.M(mod), apierrors.KindNotFound, goErr)
 	}
 
 	strListSemVers := removePseudoVersions(strList)
@@ -180,30 +180,30 @@ func removePseudoVersions(allVersions []string) []string {
 }
 
 func (p *protocol) Latest(ctx context.Context, mod string) (*storage.RevInfo, error) {
-	const op errors.Op = "protocol.Latest"
+	const op apierrors.Op = "protocol.Latest"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	if p.networkMode == Offline {
 		// Go never pings the /@latest endpoint _first_. It always tries /list and if that
 		// endpoint returns an empty list then it fallsback to calling /@latest.
-		return nil, errors.E(op, "Athens is in offline mode, use /list endpoint", errors.KindNotFound)
+		return nil, apierrors.E(op, "Athens is in offline mode, use /list endpoint", apierrors.KindNotFound)
 	}
 	lr, _, err := p.lister.List(ctx, mod)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	return lr, nil
 }
 
 func (p *protocol) Info(ctx context.Context, mod, ver string) ([]byte, error) {
-	const op errors.Op = "protocol.Info"
+	const op apierrors.Op = "protocol.Info"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	info, err := p.storage.Info(ctx, mod, ver)
 	if err == nil {
 		observ.RecordCacheLookup(ctx, "hit", "info")
-	} else if errors.IsKind(err, errors.KindNotFound) {
+	} else if apierrors.IsKind(err, apierrors.KindNotFound) {
 		observ.RecordCacheLookup(ctx, "miss", "info")
 		err = p.processDownload(ctx, mod, ver, func(newVer string) error {
 			info, err = p.storage.Info(ctx, mod, newVer)
@@ -211,20 +211,20 @@ func (p *protocol) Info(ctx context.Context, mod, ver string) ([]byte, error) {
 		})
 	}
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	return info, nil
 }
 
 func (p *protocol) GoMod(ctx context.Context, mod, ver string) ([]byte, error) {
-	const op errors.Op = "protocol.GoMod"
+	const op apierrors.Op = "protocol.GoMod"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	goMod, err := p.storage.GoMod(ctx, mod, ver)
 	if err == nil {
 		observ.RecordCacheLookup(ctx, "hit", "gomod")
-	} else if errors.IsKind(err, errors.KindNotFound) {
+	} else if apierrors.IsKind(err, apierrors.KindNotFound) {
 		observ.RecordCacheLookup(ctx, "miss", "gomod")
 		err = p.processDownload(ctx, mod, ver, func(newVer string) error {
 			goMod, err = p.storage.GoMod(ctx, mod, newVer)
@@ -232,19 +232,19 @@ func (p *protocol) GoMod(ctx context.Context, mod, ver string) ([]byte, error) {
 		})
 	}
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 	return goMod, nil
 }
 
 func (p *protocol) Zip(ctx context.Context, mod, ver string) (storage.SizeReadCloser, error) {
-	const op errors.Op = "protocol.Zip"
+	const op apierrors.Op = "protocol.Zip"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 	zip, err := p.storage.Zip(ctx, mod, ver)
 	if err == nil {
 		observ.RecordCacheLookup(ctx, "hit", "zip")
-	} else if errors.IsKind(err, errors.KindNotFound) {
+	} else if apierrors.IsKind(err, apierrors.KindNotFound) {
 		observ.RecordCacheLookup(ctx, "miss", "zip")
 		err = p.processDownload(ctx, mod, ver, func(newVer string) error {
 			zip, err = p.storage.Zip(ctx, mod, newVer)
@@ -252,14 +252,14 @@ func (p *protocol) Zip(ctx context.Context, mod, ver string) (storage.SizeReadCl
 		})
 	}
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, apierrors.E(op, err)
 	}
 
 	return zip, nil
 }
 
 func (p *protocol) processDownload(ctx context.Context, mod, ver string, f func(newVer string) error) error {
-	const op errors.Op = "protocol.processDownload"
+	const op apierrors.Op = "protocol.processDownload"
 	// Create a new context with custom deadline and ditch whatever deadline was passed by the caller.
 	// This is needed so that the async go routines can continue even after the HTTP request is complete (which leads to context cancellation).
 	ctx, cancel := copyContextWithCustomTimeout(ctx, time.Minute*15)
@@ -268,19 +268,19 @@ func (p *protocol) processDownload(ctx context.Context, mod, ver string, f func(
 	case mode.Sync:
 		newVer, err := p.stasher.Stash(ctx, mod, ver)
 		if err != nil {
-			return errors.E(op, err)
+			return apierrors.E(op, err)
 		}
 		return f(newVer)
 	case mode.Async:
 		go func() { _, _ = p.stasher.Stash(ctx, mod, ver) }()
-		return errors.E(op, "async: module not found", errors.KindNotFound)
+		return apierrors.E(op, "async: module not found", apierrors.KindNotFound)
 	case mode.Redirect:
-		return errors.E(op, "redirect", errors.KindRedirect)
+		return apierrors.E(op, "redirect", apierrors.KindRedirect)
 	case mode.AsyncRedirect:
 		go func() { _, _ = p.stasher.Stash(ctx, mod, ver) }()
-		return errors.E(op, "async_redirect: module not found", errors.KindRedirect)
+		return apierrors.E(op, "async_redirect: module not found", apierrors.KindRedirect)
 	case mode.None:
-		return errors.E(op, "none", errors.KindNotFound)
+		return apierrors.E(op, "none", apierrors.KindNotFound)
 	}
 	return nil
 }

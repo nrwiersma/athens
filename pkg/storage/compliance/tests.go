@@ -8,7 +8,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/gomods/athens/pkg/errors"
+	apierrors "github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -36,15 +36,15 @@ func testNotFound(t *testing.T, b storage.Backend) {
 
 	err := b.Delete(ctx, mod, ver)
 	require.Error(t, err)
-	require.Equal(t, errors.KindNotFound, errors.Kind(err))
+	require.Equal(t, apierrors.KindNotFound, apierrors.Kind(err))
 
 	_, err = b.GoMod(ctx, mod, ver)
 	require.Error(t, err)
-	require.Equal(t, errors.KindNotFound, errors.Kind(err))
+	require.Equal(t, apierrors.KindNotFound, apierrors.Kind(err))
 
 	_, err = b.Info(ctx, mod, ver)
 	require.Error(t, err)
-	require.Equal(t, errors.KindNotFound, errors.Kind(err))
+	require.Equal(t, apierrors.KindNotFound, apierrors.Kind(err))
 
 	vs, err := b.List(ctx, mod)
 	require.NoError(t, err)
@@ -52,7 +52,7 @@ func testNotFound(t *testing.T, b storage.Backend) {
 
 	_, err = b.Zip(ctx, mod, ver)
 	require.Error(t, err)
-	require.Equal(t, errors.KindNotFound, errors.Kind(err))
+	require.Equal(t, apierrors.KindNotFound, apierrors.Kind(err))
 }
 
 // testListPrefixes makes sure that if you have two modules, such as
